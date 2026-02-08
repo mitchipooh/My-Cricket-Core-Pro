@@ -33,6 +33,7 @@ interface MediaCenterProps {
     onDeleteMatch?: (matchId: string) => void;
     onUpdatePost: (post: MediaPost) => void;
     viewingOrgId?: string | null;
+    initialTab?: MediaTab;
 }
 
 type MediaTab = 'NEWS' | 'FEED' | 'FIXTURES' | 'STANDINGS' | 'TEAMS' | 'PLAYERS' | 'STUDIO';
@@ -41,9 +42,9 @@ type FixtureFilter = 'LIVE' | 'SCHEDULED' | 'COMPLETED' | 'UNOFFICIAL' | 'ARCHIV
 export const MediaCenter: React.FC<MediaCenterProps> = ({
     onBack, fixtures, teams, players, mediaPosts, onAddMediaPost, onDeletePost, onUpdatePost, initialMatchId,
     following, onToggleFollow, onViewTeam, onViewPlayer, userRole, currentProfile, organizations = [],
-    onArchiveMatch, onDeleteMatch, viewingOrgId
+    onArchiveMatch, onDeleteMatch, viewingOrgId, initialTab = 'NEWS'
 }) => {
-    const [activeTab, setActiveTab] = useState<MediaTab>('NEWS');
+    const [activeTab, setActiveTab] = useState<MediaTab>(initialTab);
     const [activeFixtureFilter, setActiveFixtureFilter] = useState<FixtureFilter>('SCHEDULED');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedMatch, setSelectedMatch] = useState<MatchFixture | null>(null);

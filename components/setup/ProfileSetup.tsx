@@ -22,6 +22,7 @@ interface ProfileSetupProps {
   onComplete: (profile: UserProfile) => void;
   onCancel?: () => void;
   existingProfile?: UserProfile;
+  initialMode?: 'CREATE' | 'LOGIN' | 'RECOVER';
 }
 
 export const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, onCancel, initialMode = 'CREATE', existingProfile }) => {
