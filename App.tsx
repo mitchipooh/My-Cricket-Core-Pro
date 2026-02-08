@@ -85,11 +85,11 @@ const App: React.FC = () => {
 
     const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('cc_theme') as 'dark' | 'light') || 'light');
 
-    const [activeTab, setActiveTab] = useState<'home' | 'setup' | 'scorer' | 'stats' | 'media' | 'career' | 'my_club' | 'captain_hub' | 'registry' | 'team_registry' | 'umpire_hub' | 'tournament_details' | 'transfer_market'>(() => {
+    const [activeTab, setActiveTab] = useState<'home' | 'setup' | 'scorer' | 'stats' | 'media' | 'career' | 'my_club' | 'captain_hub' | 'registry' | 'team_registry' | 'umpire_hub' | 'tournament_details' | 'transfer_market' | 'my_matches' | 'my_tournaments' | 'profile' | 'my_teams' | 'my_clubs' | 'create_tournament' | 'register_club' | 'following'>(() => {
         // Support deep linking via ?tab=registry
         const params = new URLSearchParams(window.location.search);
         const tab = params.get('tab');
-        const validTabs = ['home', 'setup', 'scorer', 'stats', 'media', 'career', 'my_club', 'captain_hub', 'registry', 'team_registry', 'umpire_hub', 'tournament_details', 'transfer_market'];
+        const validTabs = ['home', 'setup', 'scorer', 'stats', 'media', 'career', 'my_club', 'captain_hub', 'registry', 'team_registry', 'umpire_hub', 'tournament_details', 'transfer_market', 'my_matches', 'my_tournaments', 'profile', 'my_teams', 'my_clubs', 'create_tournament', 'register_club', 'following'];
         if (tab && validTabs.includes(tab)) {
             return tab as any;
         }

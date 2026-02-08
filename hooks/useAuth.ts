@@ -115,7 +115,7 @@ export const useAuth = () => {
                 name,
                 handle: `@${email.split('@')[0]}`,
                 avatar_url: data.user.user_metadata.avatar_url || '',
-                role: 'Fan'
+                role: 'Administrator'
             });
         }
 

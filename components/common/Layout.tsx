@@ -197,45 +197,57 @@ export const Layout: React.FC<LayoutProps> = ({
             <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest leading-none">Management v3.0</p>
           </div>
         </div>
-        <div className="flex flex-col gap-1.5 overflow-hidden">
-          {navItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => handleNavClick(item.id)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === item.id ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}
-            >
-              <span className="text-lg">{item.icon}</span>
-              <span className="font-black uppercase text-[10px] tracking-widest">{item.label}</span>
-            </button>
-          ))}
+        <div className="flex flex-col gap-1.5 overflow-y-auto custom-scrollbar flex-1">
+          <button key="my_matches" onClick={() => handleNavClick('my_matches')} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'my_matches' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <span className="text-lg">🏏</span><span className="font-black uppercase text-[10px] tracking-widest">My Matches</span>
+          </button>
+          <button key="my_tournaments" onClick={() => handleNavClick('my_tournaments')} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'my_tournaments' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <span className="text-lg">🏆</span><span className="font-black uppercase text-[10px] tracking-widest">My Tournaments</span>
+          </button>
+          <button key="profile" onClick={() => handleNavClick('profile')} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'profile' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <span className="text-lg">👤</span><span className="font-black uppercase text-[10px] tracking-widest">Profile</span>
+          </button>
+          <button key="my_teams" onClick={() => handleNavClick('my_teams')} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'my_teams' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <span className="text-lg">🛡️</span><span className="font-black uppercase text-[10px] tracking-widest">My Teams</span>
+          </button>
+          <button key="my_clubs" onClick={() => handleNavClick('my_clubs')} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'my_clubs' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <span className="text-lg">🏟️</span><span className="font-black uppercase text-[10px] tracking-widest">My Clubs</span>
+          </button>
+          <button key="scorer" onClick={() => handleNavClick('scorer')} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'scorer' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <span className="text-lg">⚡</span><span className="font-black uppercase text-[10px] tracking-widest">Start a Match</span>
+          </button>
+          <button key="create_tournament" onClick={() => handleNavClick('create_tournament')} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'create_tournament' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <span className="text-lg">⚔️</span><span className="font-black uppercase text-[10px] tracking-widest">Create Tournament</span>
+          </button>
+          <button key="register_club" onClick={() => handleNavClick('register_club')} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'register_club' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <span className="text-lg">📝</span><span className="font-black uppercase text-[10px] tracking-widest">Register a Club</span>
+          </button>
+          <button key="following" onClick={() => handleNavClick('following')} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'following' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <span className="text-lg">📡</span><span className="font-black uppercase text-[10px] tracking-widest">Following</span>
+          </button>
+          <button key="registry" onClick={() => handleNavClick('registry')} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'registry' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
+            <span className="text-lg">👥</span><span className="font-black uppercase text-[10px] tracking-widest">Player/Team Registry</span>
+          </button>
         </div>
+
+        {/* Settings Icon at Bottom */}
         <div className="mt-auto pt-4 border-t border-white/5 space-y-3">
-          {profile.role === 'Guest' ? (
-            <div className="space-y-2">
-              <button onClick={() => { if (onEditProfile) onEditProfile(); setIsMenuOpen(false); }} className="w-full py-2.5 bg-emerald-500 text-white hover:bg-emerald-400 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all">Create Profile</button>
-              {onSignIn && (
-                <button
-                  onClick={() => { onSignIn(); setIsMenuOpen(false); }}
-                  className="w-full py-2.5 bg-indigo-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest"
-                >
-                  Sign In
-                </button>
-              )}
+          <button
+            onClick={() => { setIsSettingsOpen(!isSettingsOpen); setIsMenuOpen(false); }}
+            className="w-full flex items-center justify-center gap-3 py-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all group"
+          >
+            <span className="text-xl group-hover:rotate-90 transition-transform duration-500">⚙️</span>
+            <span className="font-black uppercase text-[10px] tracking-widest">Settings</span>
+          </button>
+
+          <div className="flex items-center gap-3 bg-slate-800/50 p-2 rounded-xl border border-white/5">
+            <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center font-black text-white text-xs">{profile.name.charAt(0)}</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-black text-white truncate">{profile.name}</p>
+              <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">{profile.role === 'Guest' ? 'GUEST USER' : 'ADMINISTRATOR'}</p>
             </div>
-          ) : (
-            <>
-              <div className="flex items-center gap-3 bg-slate-800/50 p-2 rounded-xl border border-white/5">
-                <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center font-black text-white text-xs">{profile.name.charAt(0)}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-black text-white truncate">{profile.name}</p>
-                  <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">PRO ACCOUNT</p>
-                </div>
-                <button onClick={onSignOut} className="w-6 h-6 flex items-center justify-center text-red-400 hover:text-red-500 transition-colors">🚪</button>
-              </div>
-            </>
-          )}
-          <div className="text-center">
-            <p className="text-[8px] text-slate-700 font-bold uppercase tracking-widest">Management by mitchipoohdevs</p>
+            {profile.role !== 'Guest' && <button onClick={onSignOut} className="w-6 h-6 flex items-center justify-center text-red-400 hover:text-red-500 transition-colors">🚪</button>}
+            {profile.role === 'Guest' && onSignIn && <button onClick={onSignIn} className="w-6 h-6 flex items-center justify-center text-emerald-400 hover:text-emerald-500 transition-colors">🔑</button>}
           </div>
         </div>
       </nav>
