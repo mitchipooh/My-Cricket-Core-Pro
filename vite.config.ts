@@ -7,13 +7,6 @@ export default defineConfig({
   plugins: [react()],
   base: '/Cricketcore/', // Ensures assets load correctly relative to the repository name
   build: {
-    rollupOptions: {
-      output: {
-        // Disable hashing for easy WordPress enqueuing
-        entryFileNames: `cricket-core.js`,
-        chunkFileNames: `[name].js`,
-        assetFileNames: `cricket-core.[ext]`
-      }
-    }
+    outDir: 'dist',
   }
 })
