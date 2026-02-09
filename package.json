@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "homepage": "https://mitchipooh.github.io/Cricketcore",
+  "homepage": "https://mitchipooh.github.io/My-Cricket-Core-Pro",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
