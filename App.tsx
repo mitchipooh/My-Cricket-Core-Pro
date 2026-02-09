@@ -1375,8 +1375,50 @@ const App: React.FC = () => {
                     )}
 
                     {activeTab === 'my_matches' && (
-                        <div className="max-w-4xl mx-auto p-4">
-                            <PlayerCareer profile={profile} onUpdateProfile={updateProfile} showCaptainHub={true} onOpenCaptainHub={() => setActiveTab('captain_hub')} />
+                        <div className="max-w-4xl mx-auto p-4 content-container">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-widest">My Matches</h2>
+                                <button onClick={() => setActiveTab('scorer')} className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-md">Start New</button>
+                            </div>
+
+                            {/* Filter standalone matches or matches where user is player/captain */}
+                            {(() => {
+                                const myMatches = [...standaloneMatches, ...orgs.flatMap(o => o.fixtures)].filter(f => {
+                                    // Check if user is in Playing XI (need player IDs on fixture, or check teams)
+                                    // For simplicity, checking if user's team is involved
+                                    const myTeamIds = allTeams.filter(t => t.players.some(p => p.id === profile.id)).map(t => t.id);
+                                    return myTeamIds.includes(f.teamAId) || myTeamIds.includes(f.teamBId) || f.scorerId === profile.id || f.umpires?.includes(profile.id);
+                                }).sort((a, b) => b.date - a.date);
+
+                                if (myMatches.length === 0) {
+                                    return (
+                                        <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                            <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">No matches found</p>
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <div className="grid gap-4">
+                                        {myMatches.map(match => (
+                                            <div key={match.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between hover:shadow-md transition-all cursor-pointer" onClick={() => { setViewMatchId(match.id); setActiveTab('media'); }}>
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-white text-xs ${match.status === 'Live' ? 'bg-red-500 animate-pulse' : match.status === 'Completed' ? 'bg-emerald-500' : 'bg-slate-400'}`}>
+                                                        {match.status === 'Live' ? 'LIVE' : match.status === 'Completed' ? 'FT' : 'SCH'}
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-black text-slate-900 dark:text-white text-sm">{match.teamAName} vs {match.teamBName}</h3>
+                                                        <p className="text-xs text-slate-500 font-bold">{new Date(match.date).toLocaleDateString()} • {match.venue}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="font-black text-indigo-600 dark:text-indigo-400 text-sm">{match.result || 'No Result'}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
                         </div>
                     )}
 
