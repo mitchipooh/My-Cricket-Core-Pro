@@ -246,27 +246,6 @@ export const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, onCancel
 
           {setupMode === 'CREATE' && (
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Role Selection</label>
-              <div className="grid grid-cols-2 gap-2">
-                {['Fan', 'Player', 'Captain', 'Scorer', 'Umpire', 'Coach', 'Administrator'].map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRole(r as any)}
-                    className={`py-3 px-1 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${role === r
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg'
-                      : 'bg-slate-900 text-slate-400 border-slate-700 hover:border-slate-500'
-                      }`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {setupMode === 'CREATE' && (
-            <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Full Name</label>
               <input
                 type="text"
@@ -339,45 +318,6 @@ export const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, onCancel
               <button type="button" onClick={() => { setSetupMode('RECOVER'); setError(''); }} className="text-[10px] font-bold text-slate-400 hover:text-indigo-400 transition-colors">
                 Forgot Password?
               </button>
-            </div>
-          )}
-          {(role === 'Player' || role === 'Captain') && setupMode === 'CREATE' && (
-            <div className="space-y-4 pt-4 border-t border-slate-700">
-              <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Player Card Details</div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase">Age</label>
-                  <input type="text" value={age} onChange={(e) => setAge(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold text-sm focus:border-indigo-500 outline-none" placeholder="25" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase">Jersey #</label>
-                  <input type="text" value={jerseyNumber} onChange={(e) => setJerseyNumber(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold text-sm focus:border-indigo-500 outline-none" placeholder="10" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[9px] font-bold text-slate-400 uppercase">Nickname</label>
-                <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold text-sm focus:border-indigo-500 outline-none" placeholder="Required for team sheet" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[9px] font-bold text-slate-400 uppercase">Batting Style</label>
-                <select value={battingStyle} onChange={(e) => setBattingStyle(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold text-sm focus:border-indigo-500 outline-none">
-                  <option value="Right-hand">Right-hand Bat</option>
-                  <option value="Left-hand">Left-hand Bat</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[9px] font-bold text-slate-400 uppercase">Bowling Style</label>
-                <input type="text" value={bowlingStyle} onChange={(e) => setBowlingStyle(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold text-sm focus:border-indigo-500 outline-none" placeholder="e.g. Right-arm Fast" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[9px] font-bold text-slate-400 uppercase">Favorite Player</label>
-                <input type="text" value={favPlayer} onChange={(e) => setFavPlayer(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold text-sm focus:border-indigo-500 outline-none" placeholder="e.g. Tendulkar" />
-              </div>
             </div>
           )}
           <div className="space-y-3 mt-4">
