@@ -23,3 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Credentials files
+CZTTCB_CREDENTIALS.md
+CAPTAIN_CREDENTIALS.md
+
