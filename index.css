@@ -138,9 +138,9 @@
     background-color: #e2e8f0 !important;
 }
 
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Global Mobile Overflow Prevention */
 html,
