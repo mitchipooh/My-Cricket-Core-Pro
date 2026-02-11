@@ -8,6 +8,8 @@ interface NewBatterModalProps {
   availableBatters: Player[];
   targetRole: 'Striker' | 'NonStriker';
   onSelect: (playerId: string) => void;
+  onAddPlayer?: (name: string, teamId: string) => void;
+  teamId?: string;
 }
 
 export const NewBatterModal: React.FC<NewBatterModalProps> = ({
@@ -15,9 +17,21 @@ export const NewBatterModal: React.FC<NewBatterModalProps> = ({
   teamName,
   availableBatters,
   targetRole,
-  onSelect
+  onSelect,
+  onAddPlayer,
+  teamId
 }) => {
   const [selectedId, setSelectedId] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+
+  const handleAdd = () => {
+    if (newName.trim() && onAddPlayer && teamId) {
+      onAddPlayer(newName.trim(), teamId);
+      setIsAdding(false);
+      setNewName('');
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -42,8 +56,8 @@ export const NewBatterModal: React.FC<NewBatterModalProps> = ({
                   key={p.id}
                   onClick={() => setSelectedId(p.id)}
                   className={`w-full p-4 rounded-xl text-left border transition-all flex justify-between items-center ${selectedId === p.id
-                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg'
-                      : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500'
+                    ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg'
+                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500'
                     }`}
                 >
                   <span className="font-bold text-sm">{p.name}</span>
@@ -60,9 +74,46 @@ export const NewBatterModal: React.FC<NewBatterModalProps> = ({
           >
             Confirm Batter
           </button>
+
+          {onAddPlayer && !isAdding && (
+            <button
+              onClick={() => setIsAdding(true)}
+              className="w-full py-3 bg-slate-800 text-slate-400 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-slate-700 hover:text-white transition-all border border-slate-700"
+            >
+              + Add New Player
+            </button>
+          )}
+
+          {isAdding && (
+            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 animate-in slide-in-from-bottom-2">
+              <h4 className="text-white font-bold text-xs uppercase mb-2">New Player Name</h4>
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Enter Name..."
+                className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-lg mb-3 focus:border-indigo-500 outline-none font-bold"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsAdding(false)}
+                  className="flex-1 py-2 bg-slate-700 text-slate-300 rounded-lg text-xs font-bold uppercase"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAdd}
+                  disabled={!newName.trim()}
+                  className="flex-1 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold uppercase disabled:opacity-50"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
-

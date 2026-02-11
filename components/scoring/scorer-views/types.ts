@@ -56,6 +56,9 @@ export interface ScorerLayoutProps {
     // Ball Correction
     onBallClick: (ballObj: any) => void;
 
+    // Player Management
+    onAddPlayer?: (name: string, teamId: string) => void;
+
     // Mobile Specific
     mobileTab: 'SCORING' | 'SCORECARD' | 'BALLS' | 'INFO' | 'SUMMARY';
     setMobileTab: (tab: 'SCORING' | 'SCORECARD' | 'BALLS' | 'INFO' | 'SUMMARY') => void;

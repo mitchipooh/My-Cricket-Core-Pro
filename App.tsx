@@ -124,6 +124,7 @@ const App: React.FC = () => {
 
     // Shared Link Match Summary
     const [summaryMatch, setSummaryMatch] = useState<MatchFixture | null>(null);
+    const [readOnlyMode, setReadOnlyMode] = useState(false);
 
     // Global User Directory (Client-side simulation)
     const [globalUsers, setGlobalUsers] = useState<UserProfile[]>([]);
@@ -450,9 +451,13 @@ const App: React.FC = () => {
                     setActiveTab('scorer');
                     return; // Early exit
                 } else if (urlMatch) {
-                    // Priority 1.5: Match ID in URL + You are NOT the scorer -> Show Summary
+                    // Priority 1.5: Match ID in URL + You are NOT the scorer -> Show Scorer (Read Only)
                     // Delay slightly to ensure data is loaded
-                    setTimeout(() => setSummaryMatch(urlMatch), 500);
+                    setTimeout(() => {
+                        setReadOnlyMode(true);
+                        setActiveMatch(urlMatch);
+                        setActiveTab('scorer');
+                    }, 500);
                 }
             }
 
@@ -1219,9 +1224,18 @@ const App: React.FC = () => {
         alert('Fixture Accepted!');
     };
 
-    const handleSwitchTab = (tab: typeof activeTab) => {
+    const handleSwitchTab = (tab: any) => {
         if (tab !== 'captain_hub') {
             setSelectedHubTeamId(null);
+        }
+        // Intercept Scorer tab click to auto-resume active match
+        if (tab === 'scorer') {
+            if (ongoingMatch && !activeMatch && profile?.id === ongoingMatch.scorerId) {
+                console.log('Auto-resuming ongoing match from menu click');
+                setActiveMatch(ongoingMatch);
+            }
+            // Reset read-only mode when navigating manually (unless specifically entering a read-only context)
+            setReadOnlyMode(false);
         }
         setActiveTab(tab);
     };
@@ -2064,6 +2078,7 @@ const App: React.FC = () => {
                             onAddMediaPost={handleAddMediaPost}
                             onExit={() => setActiveTab('home')}
                             currentUserId={profile.id}
+                            readOnly={readOnlyMode}
                         />
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full text-center pb-20">

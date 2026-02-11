@@ -44,6 +44,7 @@ interface ScorerProps {
     onAddMediaPost: (post: MediaPost) => void;
     onExit: () => void;
     currentUserId: string;
+    readOnly?: boolean;
 }
 
 export const Scorer: React.FC<ScorerProps> = ({
@@ -55,7 +56,9 @@ export const Scorer: React.FC<ScorerProps> = ({
     onAddMediaPost,
     onExit,
     currentUserId,
-    organizations
+    organizations,
+    onUpdateOrgs,
+    readOnly = false
 }) => {
 
     // -- State Initialization --
@@ -513,10 +516,37 @@ export const Scorer: React.FC<ScorerProps> = ({
     }
 
     // Shared Props for children
+    const isReadOnlyView = readOnly || isLockedByOther;
+
+    const handleAddPlayer = (name: string, teamId: string) => {
+        const newPlayer: React.ComponentProps<typeof MobileScorerLayout>['teams'][0]['players'][0] = {
+            id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name,
+            role: 'All-rounder',
+            stats: {
+                runs: 0, wickets: 0, ballsFaced: 0, ballsBowled: 0,
+                runsConceded: 0, matches: 0, catches: 0, runOuts: 0,
+                stumpings: 0, fours: 0, sixes: 0, hundreds: 0,
+                fifties: 0, ducks: 0, threeWickets: 0, fiveWickets: 0, maidens: 0
+            }
+        };
+
+        const org = organizations.find(o => o.memberTeams.some(t => t.id === teamId));
+        if (org) {
+            const updatedOrg = {
+                ...org,
+                memberTeams: org.memberTeams.map(t =>
+                    t.id === teamId ? { ...t, players: [...t.players, newPlayer] } : t
+                )
+            };
+            onUpdateOrgs(organizations.map(o => o.id === updatedOrg.id ? updatedOrg : o));
+        }
+    };
+
     const layoutProps = {
         match, engine, teams, battingTeam, bowlingTeam,
         stats, timer, pad, wicket, rules,
-        onExit, isAuthorized: !isReadOnly,
+        onExit, isAuthorized: !isReadOnlyView,
         onComplete,
         handlers: {
             handleRun,
@@ -545,20 +575,21 @@ export const Scorer: React.FC<ScorerProps> = ({
             showOfficialsModal,
         },
 
-        onEditPlayer: setCorrectionTarget,
         onBallClick: setEditingBall,
         mobileTab,
         setMobileTab,
+        onEditPlayer: setCorrectionTarget,
         onPinToMedia: handlePinToMedia,
+        onAddPlayer: handleAddPlayer,
         // onComplete: handleMatchFinish // Removed if redundant with onComplete above
     };
 
 
     return (
         <div className="h-full w-full relative">
-            {isLockedByOther && (
-                <div className="absolute top-0 left-0 right-0 bg-red-600 text-white py-1 px-4 text-center text-[10px] font-black z-[100] animate-pulse">
-                    ⚠️ READ ONLY: THIS MATCH IS BEING SCORED BY ANOTHER USER
+            {isReadOnlyView && (
+                <div className="absolute top-0 left-0 right-0 bg-indigo-600 text-white py-1 px-4 text-center text-[10px] font-black z-[100] shadow-lg flex items-center justify-center gap-2">
+                    <span>👀</span> LIVE VIEW (READ ONLY) {isLockedByOther ? '• SCORED BY ANOTHER USER' : ''}
                 </div>
             )}
             <MobileScorerLayout {...layoutProps} />
@@ -721,6 +752,9 @@ export const Scorer: React.FC<ScorerProps> = ({
 
                     setShowStartModal(false);
                 }}
+                onAddPlayer={handleAddPlayer}
+                battingTeamId={battingTeam?.id}
+                bowlingTeamId={bowlingTeam?.id}
             />
 
             {pad.padView === 'bowler_replacement_select' && (
@@ -730,6 +764,8 @@ export const Scorer: React.FC<ScorerProps> = ({
                     availableBatters={selectableBowlers.filter(p => p.id !== engine.state.bowlerId)}
                     targetRole="Striker"
                     onSelect={(id) => { engine.replaceBowlerMidOver(id); pad.resetPad(); setCorrectionTarget(null); }}
+                    onAddPlayer={handleAddPlayer}
+                    teamId={bowlingTeam?.id}
                 />
             )}
 
@@ -748,6 +784,8 @@ export const Scorer: React.FC<ScorerProps> = ({
                         }
                         setNewBatterTarget(null);
                     }}
+                    onAddPlayer={handleAddPlayer}
+                    teamId={battingTeam?.id}
                 />
             )}
 
