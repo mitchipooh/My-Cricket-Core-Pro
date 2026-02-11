@@ -1,13 +1,12 @@
-
 import React, { useState, useMemo } from 'react';
-import { Tournament, MatchFixture, Organization, Team, Standing } from '../../types.ts';
+import { Tournament, Organization, Team, MatchFixture, Standing, UserProfile } from '../../types.ts';
 import { PointsTable } from '../display/PointsTable.tsx';
+import { BracketView } from '../competition/BracketView.tsx';
 import { buildPointsTable } from '../../competition/buildPointsTable.ts';
 import { CompletedMatch, MatchResult } from '../../competition/types.ts';
-import { BracketView } from '../competition/BracketView.tsx';
-import { generateKnockouts } from '../../utils/cricket-engine.ts';
 import { PointsConfigSettings } from '../admin/PointsConfigSettings.tsx';
 import { MatchResultEntryForm } from '../admin/MatchResultEntryForm.tsx';
+import { checkForDuplicateMatch, generateGameId } from '../../utils/duplicateDetection.ts';
 
 interface TournamentDashboardProps {
     tournament: Tournament;
@@ -48,6 +47,8 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
 
     // Manual Fixture Creation State
     const [isAddFixtureOpen, setIsAddFixtureOpen] = useState(false);
+    const [isCSVUploadOpen, setIsCSVUploadOpen] = useState(false);
+    const [duplicateWarning, setDuplicateWarning] = useState<{ isDuplicate: boolean; primaryMatch?: MatchFixture; gameId: string } | null>(null);
     const [fixtureForm, setFixtureForm] = useState({
         groupId: '',
         teamAId: '',
@@ -56,9 +57,6 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
         venue: '',
         format: tournament.format
     });
-
-    // CSV Upload State
-    const [isCSVUploadOpen, setIsCSVUploadOpen] = useState(false);
 
     // Manage Teams Modal State
     const [managingGroupId, setManagingGroupId] = useState<string | null>(null);
@@ -195,7 +193,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
             oversAgainst: row.oversAgainst
         }));
 
-        const newFixtures = generateKnockouts(qualifiedTeams, tournament.id, tournament.format);
+        // const newFixtures = generateKnockouts(qualifiedTeams, tournament.id, tournament.format);
         alert("Knockout Generation Logic linked. (Requires parent state update implementation)");
     };
 
@@ -222,7 +220,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
                                             <span>📅</span>
                                             <span>
                                                 {tournament.startDate ? new Date(tournament.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '...'}
-                                                {tournament.endDate ? ` — ${new Date(tournament.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
+                                                {tournament.endDate ? ` — ${new Date(tournament.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} ` : ''}
                                             </span>
                                         </p>
                                     )}
@@ -233,7 +231,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
 
                     <div className="flex gap-4 mb-10 overflow-x-auto pb-4 no-scrollbar">
                         {(['OVERVIEW', 'GROUPS', 'FIXTURES', 'STANDINGS', 'BRACKET', 'POINTS_CONFIG'] as TrnTab[]).map(tab => (
-                            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-8 py-4 rounded-3xl text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all border ${activeTab === tab ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300 hover:text-slate-900'}`}>{tab}</button>
+                            <button key={tab} onClick={() => setActiveTab(tab)} className={`px - 8 py - 4 rounded - 3xl text - xs font - black uppercase tracking - widest whitespace - nowrap transition - all border ${activeTab === tab ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300 hover:text-slate-900'} `}>{tab}</button>
                         ))}
                     </div>
                 </>
@@ -349,7 +347,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
                                 <button
                                     key={ft}
                                     onClick={() => setActiveFixtureTab(ft)}
-                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeFixtureTab === ft ? 'bg-indigo-600 text-white' : 'bg-white text-slate-400 border border-slate-200'}`}
+                                    className={`px - 4 py - 2 rounded - xl text - [10px] font - black uppercase tracking - widest transition - all ${activeFixtureTab === ft ? 'bg-indigo-600 text-white' : 'bg-white text-slate-400 border border-slate-200'} `}
                                 >
                                     {ft}
                                 </button>
@@ -385,7 +383,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
                             return (
                                 <div key={f.id} className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 hover:bg-slate-50 transition-all group">
                                     <div className="flex items-center gap-4 flex-1 min-w-0" onClick={() => onViewMatch(f)}>
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isLive ? 'bg-red-500/10 text-red-500 animate-pulse' : isCompleted ? 'bg-indigo-50 text-indigo-500' : 'bg-slate-50 text-slate-400'}`}>
+                                        <div className={`w - 12 h - 12 rounded - 2xl flex items - center justify - center shrink - 0 ${isLive ? 'bg-red-500/10 text-red-500 animate-pulse' : isCompleted ? 'bg-indigo-50 text-indigo-500' : 'bg-slate-50 text-slate-400'} `}>
                                             {isLive ? '●' : isCompleted ? '🏁' : '🕒'}
                                         </div>
                                         <div className="truncate flex-1">
@@ -396,8 +394,30 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
                                                         LIVE: {f.teamAScore || '0/0'} - {f.teamBScore || '0/0'}
                                                     </span>
                                                 )}
+                                                {f.isDuplicate && (
+                                                    <span className="text-[9px] font-black text-amber-700 uppercase tracking-widest bg-amber-100 px-2 py-0.5 rounded border border-amber-200">
+                                                        DUPLICATE
+                                                    </span>
+                                                )}
+                                                {!f.isDuplicate && f.gameId && (
+                                                    <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">
+                                                        PRIMARY
+                                                    </span>
+                                                )}
                                             </div>
-                                            <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                                            <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest flex-wrap">
+                                                {f.tournamentName && (
+                                                    <>
+                                                        <span className="text-indigo-600">🏆 {f.tournamentName}</span>
+                                                        <span>•</span>
+                                                    </>
+                                                )}
+                                                {f.groupName && (
+                                                    <>
+                                                        <span className="text-slate-500">{f.groupName}</span>
+                                                        <span>•</span>
+                                                    </>
+                                                )}
                                                 <span>{new Date(f.date).toLocaleDateString()}</span>
                                                 <span>•</span>
                                                 <span className="text-indigo-500/70">{f.venue}</span>
@@ -419,7 +439,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
                                         )}
                                         <button
                                             onClick={() => onStartMatch(f)}
-                                            className={`flex-1 sm:flex-none px-4 py-2.5 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md ${isLive ? 'bg-red-600 text-white hover:bg-red-500' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
+                                            className={`flex - 1 sm: flex - none px - 4 py - 2.5 text - [9px] font - black uppercase tracking - widest rounded - xl transition - all shadow - md ${isLive ? 'bg-red-600 text-white hover:bg-red-500' : 'bg-slate-900 text-white hover:bg-slate-800'} `}
                                         >
                                             {isLive ? 'Resume' : isCompleted ? 'Details' : 'Claim/Start'}
                                         </button>
@@ -518,18 +538,18 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
                                                 <button
                                                     key={team.id}
                                                     onClick={() => toggleTeamSelection(team.id)}
-                                                    className={`p-4 rounded-2xl border-2 transition-all flex items-center justify-between group ${isSelected ? 'border-indigo-600 bg-indigo-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                                                    className={`p - 4 rounded - 2xl border - 2 transition - all flex items - center justify - between group ${isSelected ? 'border-indigo-600 bg-indigo-50' : 'border-slate-100 bg-white hover:border-slate-300'} `}
                                                 >
                                                     <div className="flex items-center gap-3">
-                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${isSelected ? 'bg-indigo-200' : 'bg-slate-50'}`}>
+                                                        <div className={`w - 10 h - 10 rounded - xl flex items - center justify - center text - lg ${isSelected ? 'bg-indigo-200' : 'bg-slate-50'} `}>
                                                             🛡️
                                                         </div>
                                                         <div className="text-left">
-                                                            <div className={`font-black text-sm ${isSelected ? 'text-indigo-900' : 'text-slate-900'}`}>{team.name}</div>
+                                                            <div className={`font - black text - sm ${isSelected ? 'text-indigo-900' : 'text-slate-900'} `}>{team.name}</div>
                                                             <div className="text-[10px] font-bold text-slate-400 uppercase">{team.players.length} Players</div>
                                                         </div>
                                                     </div>
-                                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-200 group-hover:border-slate-400'}`}>
+                                                    <div className={`w - 6 h - 6 rounded - full border - 2 flex items - center justify - center transition - all ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-200 group-hover:border-slate-400'} `}>
                                                         {isSelected && <span className="text-white text-[10px] font-black">✓</span>}
                                                     </div>
                                                 </button>
@@ -549,18 +569,18 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
                                                     <button
                                                         key={team.id}
                                                         onClick={() => toggleTeamSelection(team.id)}
-                                                        className={`p-4 rounded-2xl border-2 transition-all flex items-center justify-between group ${isSelected ? 'border-emerald-600 bg-emerald-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                                                        className={`p - 4 rounded - 2xl border - 2 transition - all flex items - center justify - between group ${isSelected ? 'border-emerald-600 bg-emerald-50' : 'border-slate-100 bg-white hover:border-slate-300'} `}
                                                     >
                                                         <div className="flex items-center gap-3">
-                                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${isSelected ? 'bg-emerald-200' : 'bg-slate-50'}`}>
+                                                            <div className={`w - 10 h - 10 rounded - xl flex items - center justify - center text - lg ${isSelected ? 'bg-emerald-200' : 'bg-slate-50'} `}>
                                                                 🤝
                                                             </div>
                                                             <div className="text-left">
-                                                                <div className={`font-black text-sm ${isSelected ? 'text-emerald-900' : 'text-slate-900'}`}>{team.name}</div>
+                                                                <div className={`font - black text - sm ${isSelected ? 'text-emerald-900' : 'text-slate-900'} `}>{team.name}</div>
                                                                 <div className="text-[10px] font-bold text-slate-400 uppercase">Affiliated</div>
                                                             </div>
                                                         </div>
-                                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-emerald-600 border-emerald-600' : 'border-slate-200 group-hover:border-slate-400'}`}>
+                                                        <div className={`w - 6 h - 6 rounded - full border - 2 flex items - center justify - center transition - all ${isSelected ? 'bg-emerald-600 border-emerald-600' : 'border-slate-200 group-hover:border-slate-400'} `}>
                                                             {isSelected && <span className="text-white text-[10px] font-black">✓</span>}
                                                         </div>
                                                     </button>
@@ -674,6 +694,39 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
                                     </div>
                                 </div>
 
+                                {/* Duplicate Warning */}
+                                {fixtureForm.teamAId && fixtureForm.teamBId && fixtureForm.date && (() => {
+                                    const timestamp = new Date(fixtureForm.date).getTime();
+                                    const duplicateCheck = checkForDuplicateMatch(
+                                        { teamAId: fixtureForm.teamAId, teamBId: fixtureForm.teamBId, timestamp },
+                                        organization.fixtures
+                                    );
+                                    if (duplicateCheck.isDuplicate) {
+                                        return (
+                                            <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-2xl">⚠️</span>
+                                                    <div className="flex-1">
+                                                        <div className="font-bold text-amber-900 text-sm mb-1">Duplicate Match Detected</div>
+                                                        <div className="text-xs text-amber-700 leading-relaxed">
+                                                            A match between these teams on this date already exists. This will be marked as a <strong>DUPLICATE</strong> match and will <strong>NOT count toward player statistics</strong>.
+                                                        </div>
+                                                        {duplicateCheck.primaryMatch && (
+                                                            <button
+                                                                onClick={() => onViewMatch(duplicateCheck.primaryMatch!)}
+                                                                className="mt-2 text-amber-600 underline text-xs font-bold hover:text-amber-800"
+                                                            >
+                                                                View Primary Match →
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
+
                                 {/* Venue */}
                                 <div>
                                     <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-2">Venue</label>
@@ -707,18 +760,39 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
                                             return;
                                         }
 
+                                        const timestamp = new Date(fixtureForm.date).getTime();
+                                        const gameId = generateGameId(teamA.id, teamB.id, timestamp);
+                                        const duplicateCheck = checkForDuplicateMatch(
+                                            { teamAId: teamA.id, teamBId: teamB.id, timestamp },
+                                            organization.fixtures
+                                        );
+
+                                        const selectedGroup = tournament.groups?.find(g => g.id === fixtureForm.groupId);
+
                                         onAddFixture({
-                                            id: `fix-${Date.now()}`,
+                                            id: `fix - ${Date.now()} `,
                                             tournamentId: tournament.id,
+                                            tournamentName: tournament.name,
+                                            groupId: fixtureForm.groupId,
+                                            groupName: selectedGroup?.name,
                                             teamAId: teamA.id,
                                             teamBId: teamB.id,
                                             teamAName: teamA.name,
                                             teamBName: teamB.name,
                                             date: new Date(fixtureForm.date).toISOString(),
+                                            timestamp,
                                             venue: fixtureForm.venue,
                                             format: fixtureForm.format,
-                                            status: 'Scheduled' as any
+                                            status: 'Scheduled' as any,
+                                            gameId,
+                                            isDuplicate: duplicateCheck.isDuplicate,
+                                            primaryMatchId: duplicateCheck.primaryMatch?.id,
+                                            duplicateReason: duplicateCheck.isDuplicate ? `Duplicate of match between ${teamA.name} vs ${teamB.name} on ${new Date(timestamp).toLocaleDateString()} ` : undefined
                                         });
+
+                                        if (duplicateCheck.isDuplicate) {
+                                            setDuplicateWarning(duplicateCheck);
+                                        }
 
                                         setIsAddFixtureOpen(false);
                                         setFixtureForm({ groupId: '', teamAId: '', teamBId: '', date: '', venue: '', format: tournament.format });
@@ -791,7 +865,7 @@ export const TournamentDashboard: React.FC<TournamentDashboardProps> = ({
 
                                                     if (teamA && teamB && date && venue) {
                                                         onAddFixture({
-                                                            id: `fix-csv-${Date.now()}-${i}`,
+                                                            id: `fix - csv - ${Date.now()} -${i} `,
                                                             tournamentId: tournament.id,
                                                             teamAId: teamA.id,
                                                             teamBId: teamB.id,

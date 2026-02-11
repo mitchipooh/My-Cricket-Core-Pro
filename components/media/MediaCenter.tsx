@@ -72,6 +72,22 @@ export const MediaCenter: React.FC<MediaCenterProps> = ({
                 const orgFixtureIds = org.fixtures.map(f => f.id);
                 filtered = filtered.filter(f => orgFixtureIds.includes(f.id));
             }
+        } else {
+            // NEW: Global feed visibility filtering based on pushToGlobalFeed setting
+            filtered = filtered.filter(fixture => {
+                const hostOrg = organizations.find(org => org.fixtures.some(f => f.id === fixture.id));
+
+                // Standalone matches (no host org) are always visible
+                if (!hostOrg) return true;
+
+                // If org pushes to global feed (or setting is undefined/true), show to everyone
+                if (hostOrg.pushToGlobalFeed !== false) return true;
+
+                // Otherwise, only show to org members
+                const currentUserId = currentProfile?.id;
+                if (!currentUserId) return false;
+                return hostOrg.members.some(m => m.userId === currentUserId);
+            });
         }
 
         return filtered.filter(f => {
@@ -89,7 +105,7 @@ export const MediaCenter: React.FC<MediaCenterProps> = ({
             return false;
         });
 
-    }, [fixtures, activeFixtureFilter, viewingOrgId, organizations]);
+    }, [fixtures, activeFixtureFilter, viewingOrgId, organizations, currentProfile]);
 
     // Also filter MediaPosts if looking at specific Org
     const displayedPosts = useMemo(() => {

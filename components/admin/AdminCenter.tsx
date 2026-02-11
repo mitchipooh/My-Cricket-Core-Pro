@@ -110,6 +110,10 @@ export const AdminCenter: React.FC<AdminProps> = ({
   const globalPlayers = useMemo((): PlayerWithContext[] => organizations.flatMap(org => org.memberTeams.flatMap(t => t.players.map(p => ({ ...p, teamName: t.name, teamId: t.id, orgId: org.id, orgName: org.name })))), [organizations]);
   const globalFixtures = useMemo((): MatchFixture[] => [...organizations.flatMap(org => org.fixtures), ...standaloneMatches].sort((a, b) => { const weight = { 'Live': 0, 'Scheduled': 1, 'Completed': 2 }; const diff = (weight[a.status] || 1) - (weight[b.status] || 1); return diff !== 0 ? diff : a.status === 'Completed' ? new Date(b.date).getTime() - new Date(a.date).getTime() : new Date(a.date).getTime() - new Date(b.date).getTime(); }), [organizations, standaloneMatches]);
 
+  const incompleteMatches = useMemo(() => {
+    return globalFixtures.filter(f => f.status === 'Live' && f.scorerId === currentUserId);
+  }, [globalFixtures, currentUserId]);
+
   const topBatsmen = useMemo(() => [...globalPlayers].sort((a, b) => b.stats.runs - a.stats.runs).slice(0, 5), [globalPlayers]);
   const topBowlers = useMemo(() => [...globalPlayers].sort((a, b) => b.stats.wickets - a.stats.wickets).slice(0, 5), [globalPlayers]);
   const currentOrgPlayers = useMemo((): PlayerWithContext[] => activeOrg ? activeOrg.memberTeams.flatMap(t => t.players.map(p => ({ ...p, teamName: t.name, teamId: t.id, orgId: activeOrg.id, orgName: activeOrg.name }))) : [], [activeOrg]);
@@ -159,7 +163,33 @@ export const AdminCenter: React.FC<AdminProps> = ({
     ));
   };
   const handleGenerateFixtures = () => { if (!activeOrg || !activeTrn) return; const newFix = (activeTrn.groups || []).flatMap(g => generateRoundRobin(g.teams, activeTrn.id, g.id)); onUpdateOrgs(organizations.map(o => o.id === activeOrg.id ? { ...o, fixtures: [...o.fixtures, ...newFix] } : o)); };
-  const handleAddFixture = (fixture: Partial<MatchFixture>) => { if (!activeOrg) return; const completeFixture: MatchFixture = { ...fixture, id: fixture.id || `fix-${Date.now()}`, tournamentId: activeTrn?.id || '', teamAId: fixture.teamAId || '', teamBId: fixture.teamBId || '', teamAName: fixture.teamAName || '', teamBName: fixture.teamBName || '', date: fixture.date || new Date().toISOString(), venue: fixture.venue || '', format: fixture.format || 'T20', status: 'Scheduled' } as MatchFixture; onUpdateOrgs(organizations.map(o => o.id === activeOrg.id ? { ...o, fixtures: [...o.fixtures, completeFixture] } : o)); };
+  const handleAddFixture = (fixture: Partial<MatchFixture>) => {
+    if (!activeOrg) return;
+
+    // Preserve ALL fields from fixture, only set defaults for truly missing required fields
+    const completeFixture: MatchFixture = {
+      tournamentId: activeTrn?.id || '',
+      teamAId: '',
+      teamBId: '',
+      teamAName: '',
+      teamBName: '',
+      date: new Date().toISOString(),
+      venue: '',
+      format: 'T20',
+      status: 'Scheduled',
+      // Spread fixture AFTER defaults so it overwrites with actual values
+      ...fixture,
+      // Ensure ID is set if not provided
+      id: fixture.id || `fix-${Date.now()}`
+    } as MatchFixture;
+
+    onUpdateOrgs(organizations.map(o =>
+      o.id === activeOrg.id
+        ? { ...o, fixtures: [...o.fixtures, completeFixture] }
+        : o
+    ));
+  };
+
 
   const handleUpdateOrgDetails = (id: string, data: Partial<Organization>) => {
     onUpdateOrgs(organizations.map(o => o.id === id ? { ...o, ...data } : o));
@@ -249,6 +279,26 @@ export const AdminCenter: React.FC<AdminProps> = ({
         onClose={() => setIsResolutionModalOpen(false)}
         onResolve={handleResolveIssue}
       />
+      {/* INCOMPLETE GAMES WARNING */}
+      {incompleteMatches.length > 0 && (
+        <div className="mb-8 bg-red-500/10 border-2 border-red-500/30 rounded-[2.5rem] p-6 flex flex-col md:flex-row items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center gap-4 text-center md:text-left">
+            <div className="w-12 h-12 bg-red-500 text-white rounded-2xl flex items-center justify-center text-xl animate-pulse">⚠</div>
+            <div>
+              <h3 className="text-red-600 dark:text-red-400 font-black uppercase text-xs tracking-widest mb-1">Incomplete Games Detected</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm font-bold">You have {incompleteMatches.length} match{incompleteMatches.length > 1 ? 'es' : ''} in progress. Pick back up where you left off!</p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => onSwitchViewRole && onSwitchViewRole('Scorer')}
+              className="px-6 py-3 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500 transition-all shadow-lg"
+            >
+              Continue Scoring
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ROLE SWITCHER - Mobile Dropdown / Desktop Grid */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-xl border border-slate-100 dark:border-slate-800 animate-in slide-in-from-top-4 duration-500">

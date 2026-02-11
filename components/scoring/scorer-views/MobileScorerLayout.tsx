@@ -48,12 +48,33 @@ export const MobileScorerLayout = ({
         }
     };
 
-    const handleShareMatch = () => {
-        const url = new URL(window.location.href);
-        url.searchParams.set('tab', 'SUMMARY');
-        navigator.clipboard.writeText(url.toString());
-        setShowCopiedToast(true);
-        setTimeout(() => setShowCopiedToast(false), 2000);
+    const handleShareMatch = async () => {
+        const url = new URL(window.location.origin + window.location.pathname);
+        url.searchParams.set('matchId', match.id);
+        url.searchParams.set('tab', 'FIXTURES'); // Fixtures tab has the Match Details logic
+        url.searchParams.set('mode', 'media');
+
+        const shareData = {
+            title: `${match.teamAName} vs ${match.teamBName} - Live Score`,
+            text: `Follow the live score of ${match.teamAName} vs ${match.teamBName} on Cricket-Core!`,
+            url: url.toString()
+        };
+
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch (err) {
+                // If sharing fails or cancelled, fallback to clipboard
+                console.log('Share failed or cancelled:', err);
+                navigator.clipboard.writeText(url.toString());
+                setShowCopiedToast(true);
+                setTimeout(() => setShowCopiedToast(false), 2000);
+            }
+        } else {
+            navigator.clipboard.writeText(url.toString());
+            setShowCopiedToast(true);
+            setTimeout(() => setShowCopiedToast(false), 2000);
+        }
     };
 
     const handleTabClick = (tab: typeof mobileTab) => {
@@ -270,8 +291,8 @@ export const MobileScorerLayout = ({
 
                             return (
                                 <>
-                                    {renderOverRow(currentOverBalls, `Over ${currentOverIndex}`, true)}
-                                    {currentOverIndex > 0 && renderOverRow(prevOverBalls, `Over ${currentOverIndex - 1}`, false)}
+                                    {renderOverRow(currentOverBalls, `Over ${currentOverIndex + 1}`, true)}
+                                    {currentOverIndex > 0 && renderOverRow(prevOverBalls, `Over ${currentOverIndex}`, false)}
                                 </>
                             );
                         })()}

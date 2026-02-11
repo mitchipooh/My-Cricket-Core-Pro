@@ -58,7 +58,15 @@ export const GlobalDashboard: React.FC<GlobalDashboardProps> = ({
   const discoverOrgs = organizations.filter(org => org.isPublic !== false && !org.members.some(m => m.userId === currentUserId));
 
   // Match Official Resume Feature
-  const liveMatches = fixtures.filter(f => f.status === 'Live');
+  // NEW: Filter fixtures to only show matches from user's organizations (Command Center scoping)
+  const myOrgIds = myOrgs.map(org => org.id);
+  const myOrgFixtures = fixtures.filter(fixture => {
+    // Check if fixture belongs to any of user's organizations
+    const hostOrg = organizations.find(org => org.fixtures.some(f => f.id === fixture.id));
+    if (!hostOrg) return false; // Don't show standalone matches in Command Center
+    return myOrgIds.includes(hostOrg.id);
+  });
+  const liveMatches = myOrgFixtures.filter(f => f.status === 'Live');
 
 
 
@@ -176,7 +184,7 @@ export const GlobalDashboard: React.FC<GlobalDashboardProps> = ({
           )}
 
           {/* MATCH DAY HIGHLIGHTS - NEW Prominent Section */}
-          {(liveMatches.length > 0 || fixtures.some(f => f.status === 'Scheduled')) && (
+          {(liveMatches.length > 0 || myOrgFixtures.some(f => f.status === 'Scheduled')) && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
@@ -186,7 +194,7 @@ export const GlobalDashboard: React.FC<GlobalDashboardProps> = ({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {fixtures
+                {myOrgFixtures
                   .filter(f => f.status === 'Live' || f.status === 'Scheduled')
                   .sort((a, b) => {
                     // 1. Status Priority (Live > Scheduled)

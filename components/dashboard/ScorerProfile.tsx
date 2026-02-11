@@ -36,8 +36,27 @@ export const ScorerProfile: React.FC<ScorerProfileProps> = ({ profile, onUpdateP
         return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
     };
 
+    const incompleteGames = scoutedGames.filter(f => f.status === 'Live');
+
     return (
         <div className="animate-in slide-in-from-bottom-8 min-h-screen bg-slate-50 pb-20">
+            {/* INCOMPLETE GAMES WARNING */}
+            {incompleteGames.length > 0 && (
+                <div className="bg-red-500 text-white px-4 py-3 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4">
+                    <div className="flex items-center gap-3">
+                        <span className="text-lg animate-pulse">⚠</span>
+                        <p className="text-[10px] font-black uppercase tracking-widest">
+                            Incomplete Games Detected ({incompleteGames.length})
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => setActiveTab('MY_GAMES')}
+                        className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
+                    >
+                        View Assignments
+                    </button>
+                </div>
+            )}
             {/* Collapsed Header / Top Bar */}
             <div className="bg-slate-900 text-white p-4 sticky top-0 z-30 shadow-md">
                 <div className="flex items-center justify-between">

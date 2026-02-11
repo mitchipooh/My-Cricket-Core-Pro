@@ -27,6 +27,7 @@ export const EditOrgModal: React.FC<EditOrgModalProps> = ({ organization, onSave
         isPublic: organization.isPublic !== undefined ? organization.isPublic : true,
         allowUserContent: organization.allowUserContent !== undefined ? organization.allowUserContent : true,
         allowMemberEditing: organization.allowMemberEditing !== undefined ? organization.allowMemberEditing : true,
+        pushToGlobalFeed: organization.pushToGlobalFeed !== undefined ? organization.pushToGlobalFeed : true,
         managerName: organization.managerName || '',
         ownerName: organization.ownerName || '',
         establishedYear: organization.establishedYear || '',
@@ -43,6 +44,7 @@ export const EditOrgModal: React.FC<EditOrgModalProps> = ({ organization, onSave
             isPublic: formData.isPublic,
             allowUserContent: formData.allowUserContent,
             allowMemberEditing: formData.allowMemberEditing,
+            pushToGlobalFeed: formData.pushToGlobalFeed,
             managerName: formData.managerName,
             ownerName: formData.ownerName,
             establishedYear: formData.establishedYear ? Number(formData.establishedYear) : undefined,
@@ -372,82 +374,94 @@ export const EditOrgModal: React.FC<EditOrgModalProps> = ({ organization, onSave
                                     </div>
                                 </div>
 
-                                {currentUserProfile?.handle === '@cz_admin' && (
-                                    <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between col-span-1 md:col-span-2">
-                                        <div>
-                                            <div className="font-bold text-slate-900 text-sm">Council-wide Editing</div>
-                                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-indigo-600">Master Switch: Allow Member/Team Admins to Edit</div>
+                                    <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between gap-3">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-bold text-slate-900 text-sm">Push Matches to Global Feed</div>
+                                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Show Matches to All Users</div>
                                         </div>
                                         <div
-                                            onClick={() => setFormData({ ...formData, allowMemberEditing: !formData.allowMemberEditing })}
-                                            className={`w-12 h-6 rounded-full relative cursor-pointer transition-all ${formData.allowMemberEditing ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                                            onClick={() => setFormData({ ...formData, pushToGlobalFeed: !formData.pushToGlobalFeed })}
+                                            className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors shrink-0 ${formData.pushToGlobalFeed ? 'bg-blue-600' : 'bg-slate-300'}`}
                                         >
-                                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${formData.allowMemberEditing ? 'left-7' : 'left-1'}`}></div>
+                                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${formData.pushToGlobalFeed ? 'left-7' : 'left-1'}`}></div>
                                         </div>
                                     </div>
-                                )}
-                            </div>
-
-                            <button onClick={handleSaveDetails} className="w-full py-4 bg-slate-900 text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-slate-800 transition-all mt-4">Save Changes</button>
-                        </div>
-                    )}
-
-                    {/* Access Tab Content Remains Identical to previous implementation */}
-                    {activeTab === 'ACCESS' && (
-                        <div className="space-y-8">
-                            <div>
-                                <h4 className="text-xs font-black text-purple-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-purple-600 rounded-full"></span> Administrators
-                                </h4>
-                                <div className="space-y-3">
-                                    {admins.length > 0 ? admins.map(renderMemberRow) : <div className="text-slate-400 text-xs italic pl-4">No administrators defined.</div>}
-                                </div>
-                            </div>
-                            <div>
-                                <h4 className="text-xs font-black text-teal-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-teal-600 rounded-full"></span> Scorers
-                                </h4>
-                                <div className="space-y-3">
-                                    {scorers.length > 0 ? scorers.map(renderMemberRow) : <div className="text-slate-400 text-xs italic pl-4">No scorers assigned.</div>}
-                                </div>
-                            </div>
-                            <div>
-                                <h4 className="text-xs font-black text-red-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-red-500 rounded-full"></span> Restricted / Rejected
-                                </h4>
-                                {rejectedApps.length === 0 ? (
-                                    <div className="p-6 bg-slate-100 rounded-2xl border border-dashed border-slate-300 text-center text-slate-400 text-xs font-bold uppercase">
-                                        No rejected applicants
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {rejectedApps.map(app => (
-                                            <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center justify-between shadow-sm opacity-75 hover:opacity-100 transition-opacity">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-black text-slate-400">
-                                                        {app.applicantName.charAt(0)}
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-bold text-sm text-slate-900">{app.applicantName}</div>
-                                                        <div className="text-[10px] font-bold text-slate-400 uppercase">{new Date(app.timestamp).toLocaleDateString()}</div>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => handleRestore(app)}
-                                                    className="px-4 py-2 border border-emerald-100 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-all"
-                                                >
-                                                    Restore
-                                                </button>
+                                    {currentUserProfile?.handle === '@cz_admin' && (
+                                        <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between col-span-1 md:col-span-2">
+                                            <div>
+                                                <div className="font-bold text-slate-900 text-sm">Council-wide Editing</div>
+                                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-indigo-600">Master Switch: Allow Member/Team Admins to Edit</div>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
+                                            <div
+                                                onClick={() => setFormData({ ...formData, allowMemberEditing: !formData.allowMemberEditing })}
+                                                className={`w-12 h-6 rounded-full relative cursor-pointer transition-all ${formData.allowMemberEditing ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                                            >
+                                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${formData.allowMemberEditing ? 'left-7' : 'left-1'}`}></div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <button onClick={handleSaveDetails} className="w-full py-4 bg-slate-900 text-white rounded-xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-slate-800 transition-all mt-4">Save Changes</button>
                             </div>
-                        </div>
                     )}
-                </div>
+
+                            {/* Access Tab Content Remains Identical to previous implementation */}
+                            {activeTab === 'ACCESS' && (
+                                <div className="space-y-8">
+                                    <div>
+                                        <h4 className="text-xs font-black text-purple-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                            <span className="w-2 h-2 bg-purple-600 rounded-full"></span> Administrators
+                                        </h4>
+                                        <div className="space-y-3">
+                                            {admins.length > 0 ? admins.map(renderMemberRow) : <div className="text-slate-400 text-xs italic pl-4">No administrators defined.</div>}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs font-black text-teal-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                            <span className="w-2 h-2 bg-teal-600 rounded-full"></span> Scorers
+                                        </h4>
+                                        <div className="space-y-3">
+                                            {scorers.length > 0 ? scorers.map(renderMemberRow) : <div className="text-slate-400 text-xs italic pl-4">No scorers assigned.</div>}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs font-black text-red-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                            <span className="w-2 h-2 bg-red-500 rounded-full"></span> Restricted / Rejected
+                                        </h4>
+                                        {rejectedApps.length === 0 ? (
+                                            <div className="p-6 bg-slate-100 rounded-2xl border border-dashed border-slate-300 text-center text-slate-400 text-xs font-bold uppercase">
+                                                No rejected applicants
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {rejectedApps.map(app => (
+                                                    <div key={app.id} className="bg-white p-4 rounded-2xl border border-slate-200 flex items-center justify-between shadow-sm opacity-75 hover:opacity-100 transition-opacity">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-black text-slate-400">
+                                                                {app.applicantName.charAt(0)}
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-bold text-sm text-slate-900">{app.applicantName}</div>
+                                                                <div className="text-[10px] font-bold text-slate-400 uppercase">{new Date(app.timestamp).toLocaleDateString()}</div>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleRestore(app)}
+                                                            className="px-4 py-2 border border-emerald-100 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-all"
+                                                        >
+                                                            Restore
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
             </div>
-        </div>
-    );
+            </div>
+            );
 };
 

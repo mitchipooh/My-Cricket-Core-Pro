@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { MatchFixture, Team, Organization, UserProfile, MediaPost, MatchState, BallEvent } from '../../types';
 import { getBallColor } from '../../utils/cricket-engine';
+import { generateCommentary, generateEndOfOverCommentary } from '../../utils/commentaryGenerator.ts';
 import { useMatchEngine } from '../../scoring/hooks/useMatchEngine.ts';
 import { useScoringPad } from '../../scoring/hooks/useScoringPad.ts';
 import { useMatchRules } from '../../scoring/hooks/useMatchRules.ts';
@@ -28,7 +29,9 @@ import { CameraModal } from '../modals/CameraModal.tsx';
 import { OfficialsModal } from '../modals/OfficialsModal.tsx';
 import { checkEndOfInnings } from '../../scoring/engines/inningsEngine.ts';
 import { generateMatchPDF } from './logic/generateMatchPDF.ts';
-
+import { useAudioCommentary } from '../../hooks/useAudioCommentary.ts';
+import { AudioCommentaryToggle } from './AudioCommentaryToggle.tsx';
+import { AudioSettingsModal } from './AudioSettingsModal.tsx';
 interface ScorerProps {
     match: MatchFixture;
     teams: Team[];
@@ -97,6 +100,10 @@ export const Scorer: React.FC<ScorerProps> = ({
     const [isCameraOpen, setIsCameraOpen] = useState(false);
     const [autoAnalytics, setAutoAnalytics] = useState(false);
     const [showOfficialsModal, setShowOfficialsModal] = useState(false);
+
+    // Audio Commentary
+    const audioCommentary = useAudioCommentary();
+    const [showAudioSettings, setShowAudioSettings] = useState(false);
     const [mobileTab, setMobileTab] = useState<'SCORING' | 'SCORECARD' | 'BALLS' | 'INFO' | 'SUMMARY'>('SCORING');
 
     const [inningsBreak, setInningsBreak] = useState<{ open: boolean; reason: string | null }>({ open: false, reason: null });
@@ -208,6 +215,48 @@ export const Scorer: React.FC<ScorerProps> = ({
         if (isReadOnly) return;
         claimLock();
         engine.applyBall({ runs });
+
+        // Audio commentary with player context
+        if (audioCommentary.enabled) {
+            const striker = battingTeam?.players.find(p => p.id === engine.state.strikerId);
+            const bowler = bowlingTeam?.players.find(p => p.id === engine.state.bowlerId);
+            const commentary = generateCommentary({
+                runs,
+                batter: striker,
+                bowler
+            });
+            audioCommentary.speak(commentary);
+
+            // Check if over just completed (totalBalls is now divisible by 6)
+            const ballsAfter = engine.state.totalBalls;
+            if (ballsAfter > 0 && ballsAfter % 6 === 0) {
+                // End of over - announce game update
+                const overNumber = Math.floor(ballsAfter / 6);
+                const striker = battingTeam?.players.find(p => p.id === engine.state.strikerId);
+                const batterStats = stats.batterStats[engine.state.strikerId];
+
+                const endOfOverCommentary = generateEndOfOverCommentary({
+                    overNumber,
+                    score: engine.state.score,
+                    wickets: engine.state.wickets,
+                    currentRunRate: stats.runRate.toString(),
+                    innings: engine.state.innings,
+                    target: engine.state.target,
+                    requiredRate: stats.requiredRate.toString(),
+                    batterName: striker?.name,
+                    batterScore: batterStats?.runs,
+                    projectedScore: engine.state.innings === 1 && stats.runRate ?
+                        Math.round((stats.runRate || 0) * rules.totalOversAllowed) : undefined,
+                    lead: engine.state.lead
+                });
+
+                // Delay end-of-over commentary slightly so it doesn't overlap with ball commentary
+                setTimeout(() => {
+                    audioCommentary.speak(endOfOverCommentary);
+                }, 2000);
+            }
+        }
+
         if (autoAnalytics) setShowShotModal(true);
     };
 
@@ -226,8 +275,34 @@ export const Scorer: React.FC<ScorerProps> = ({
             runs: isOffBat ? runs : 0,
             batRuns: isOffBat ? runs : 0
         });
+
+        // Audio commentary for extras
+        if (audioCommentary.enabled) {
+            const bowler = bowlingTeam?.players.find(p => p.id === engine.state.bowlerId);
+            const commentary = generateCommentary({
+                runs,
+                isWide: extraType === 'Wide',
+                isNoBall: extraType === 'NoBall',
+                isBye: extraType === 'Bye',
+                isLegBye: extraType === 'LegBye',
+                bowler
+            });
+            audioCommentary.speak(commentary);
+        }
+
         pad.resetPad();
         if (autoAnalytics) setShowShotModal(true);
+    };
+
+    const handleSwapBatters = () => {
+        if (isReadOnly) return;
+        const currentStriker = engine.state.strikerId;
+        const currentNonStriker = engine.state.nonStrikerId;
+
+        engine.updateMetadata({
+            strikerId: currentNonStriker,
+            nonStrikerId: currentStriker
+        });
     };
 
     const startNextInnings = () => {
@@ -387,7 +462,21 @@ export const Scorer: React.FC<ScorerProps> = ({
         (!isStrictSquad || bowlingSquadIds.length === 0 || bowlingSquadIds.includes(p.id))
     ) || [];
 
-    const availableBatters = selectableBatters;
+    const availableBatters = selectableBatters.filter(p => {
+        // Exclude current batters
+        if (p.id === engine.state.strikerId) return false;
+        if (p.id === engine.state.nonStrikerId) return false;
+
+        // Exclude dismissed batters in current innings
+        const isDismissed = engine.state.history.some(ball =>
+            ball.isWicket &&
+            ball.outPlayerId === p.id &&
+            ball.innings === engine.state.innings
+        );
+        if (isDismissed) return false;
+
+        return true;
+    });
 
     // --- FIX: END OF OVER LOGIC ---
     const currentOverIndex = Math.floor(engine.state.totalBalls / 6);
@@ -432,6 +521,7 @@ export const Scorer: React.FC<ScorerProps> = ({
         handlers: {
             handleRun,
             handleCommitExtra,
+            handleSwapBatters,
             handleMatchFinish,
             handleManualConclude,
             handleManualSave,
@@ -472,6 +562,17 @@ export const Scorer: React.FC<ScorerProps> = ({
                 </div>
             )}
             <MobileScorerLayout {...layoutProps} />
+
+            {/* Audio Commentary Toggle */}
+            <div className="fixed top-4 right-4 z-50">
+                <AudioCommentaryToggle
+                    enabled={audioCommentary.enabled}
+                    speaking={audioCommentary.speaking}
+                    onToggle={() => audioCommentary.setEnabled(!audioCommentary.enabled)}
+                    onOpenSettings={() => setShowAudioSettings(true)}
+                    isSupported={audioCommentary.isSupported}
+                />
+            </div>
 
             {/* Test Match Status Overlay (Optional) */}
             {/* Test Match Status Overlay */}
@@ -528,6 +629,24 @@ export const Scorer: React.FC<ScorerProps> = ({
                     if (isReadOnly) return;
                     claimLock();
                     engine.recordWicket({ type: 'WICKET', wicketType: wicket.wicketType!, batterId: wicket.outPlayerId!, fielderId: wicket.fielderId || undefined });
+
+                    // Audio commentary for wicket with player context
+                    if (audioCommentary.enabled && wicket.wicketType) {
+                        const striker = battingTeam?.players.find(p => p.id === engine.state.strikerId);
+                        const nonStriker = battingTeam?.players.find(p => p.id === engine.state.nonStrikerId);
+                        const bowler = bowlingTeam?.players.find(p => p.id === engine.state.bowlerId);
+                        const outPlayer = [striker, nonStriker].find(p => p?.id === wicket.outPlayerId);
+                        const fielderPlayer = bowlingTeam?.players.find(p => p?.id === wicket.fielderId);
+                        const commentary = generateCommentary({
+                            runs: 0,
+                            wicketType: wicket.wicketType,
+                            outPlayer,
+                            fielder: fielderPlayer,
+                            bowler
+                        });
+                        audioCommentary.speak(commentary);
+                    }
+
                     wicket.reset();
                     if (autoAnalytics) setShowShotModal(true);
                 }}
@@ -620,7 +739,15 @@ export const Scorer: React.FC<ScorerProps> = ({
                     teamName={battingTeam?.name || ''}
                     availableBatters={availableBatters}
                     targetRole={newBatterTarget}
-                    onSelect={(id) => { engine.applyBall({ commentary: `EVENT: New Batter (${newBatterTarget})`, [newBatterTarget.toLowerCase() + 'Id']: id } as any); setNewBatterTarget(null); }}
+                    onSelect={(id) => {
+                        // Properly update the batter position
+                        if (newBatterTarget === 'Striker') {
+                            engine.updateMetadata({ strikerId: id });
+                        } else {
+                            engine.updateMetadata({ nonStrikerId: id });
+                        }
+                        setNewBatterTarget(null);
+                    }}
                 />
             )}
 
@@ -698,6 +825,19 @@ export const Scorer: React.FC<ScorerProps> = ({
                     onPinToMedia={handlePinToMedia}
                 />
             )}
+
+            {/* Audio Settings Modal */}
+            <AudioSettingsModal
+                isOpen={showAudioSettings}
+                onClose={() => setShowAudioSettings(false)}
+                voices={audioCommentary.voices}
+                settings={audioCommentary.settings}
+                onVoiceChange={audioCommentary.setVoice}
+                onSpeedChange={audioCommentary.setSpeed}
+                onPitchChange={audioCommentary.setPitch}
+                onVolumeChange={audioCommentary.setVolume}
+                onTest={() => audioCommentary.speak('This is a test of the audio commentary system. Four! Six! Wicket!')}
+            />
 
         </div>
     );

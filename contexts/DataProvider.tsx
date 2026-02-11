@@ -35,8 +35,8 @@ interface DataContextType {
     isSyncing: boolean;
 
     // Silent Mutators (Update Local State ONLY - No Sync trigger)
-    setOrgsSilent: (orgs: Organization[]) => void;
-    setStandaloneMatchesSilent: (matches: MatchFixture[]) => void;
+    setOrgsSilent: (orgs: Organization[] | ((prev: Organization[]) => Organization[])) => void;
+    setStandaloneMatchesSilent: (matches: MatchFixture[] | ((prev: MatchFixture[]) => MatchFixture[])) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);

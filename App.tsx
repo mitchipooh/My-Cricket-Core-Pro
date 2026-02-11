@@ -100,13 +100,17 @@ const App: React.FC = () => {
     });
     const [activeMatch, setActiveMatch] = useState<MatchFixture | null>(null);
     const [pendingSetupFixture, setPendingSetupFixture] = useState<MatchFixture | null>(null);
-    const [viewMatchId, setViewMatchId] = useState<string | null>(null);
+    const [viewMatchId, setViewMatchId] = useState<string | null>(() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('matchId');
+    });
     const [viewingTeamId, setViewingTeamId] = useState<string | null>(null);
     const [viewingPlayerId, setViewingPlayerId] = useState<string | null>(null);
     const [viewingTournamentId, setViewingTournamentId] = useState<string | null>(null);
     const [viewingOrgId, setViewingOrgId] = useState<string | null>(null);
     const [selectedHubTeamId, setSelectedHubTeamId] = useState<string | null>(null); // NEW: Overrides myTeam for Admins
     const [editingProfile, setEditingProfile] = useState(false);
+    const [showResumeModal, setShowResumeModal] = useState(false);
     const [isApplyingForOrg, setIsApplyingForOrg] = useState(false);
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [authModalMode, setAuthModalMode] = useState<'signin' | 'signup'>('signin');
@@ -246,12 +250,50 @@ const App: React.FC = () => {
             const cloudMatch = (standaloneMatches || []).find(m => m.id === activeMatch.id) ||
                 (orgs || []).flatMap(o => o.fixtures).find(f => f.id === activeMatch.id);
             if (cloudMatch && cloudMatch.savedState && JSON.stringify(cloudMatch.savedState) !== JSON.stringify(activeMatch.savedState)) {
-                // Only update if fundamentally different state to avoid jitter?
-                // Ideally we just update.
                 setActiveMatch(cloudMatch);
             }
         }
     }, [standaloneMatches, orgs, activeMatch?.id]);
+
+    // --- REALTIME FIXTURE UPDATES ---
+    useEffect(() => {
+        const fixtureChannel = supabase
+            .channel('fixtures_realtime')
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'fixtures' },
+                (payload) => {
+                    const updated = payload.new as any;
+                    console.log('Real-time fixture update received:', updated);
+
+                    const updateLocalFixture = (f: MatchFixture): MatchFixture => {
+                        if (f.id === updated.id) {
+                            return {
+                                ...f,
+                                status: updated.status,
+                                teamAScore: updated.scores?.teamAScore || f.teamAScore,
+                                teamBScore: updated.scores?.teamBScore || f.teamBScore,
+                                savedState: updated.saved_state || f.savedState,
+                                result: updated.result || f.result,
+                                winnerId: updated.winner_id || f.winnerId
+                            };
+                        }
+                        return f;
+                    };
+
+                    setStandaloneMatchesSilent(prev => prev.map(updateLocalFixture));
+                    setOrgsSilent(prev => prev.map(org => ({
+                        ...org,
+                        fixtures: org.fixtures.map(updateLocalFixture)
+                    })));
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(fixtureChannel);
+        };
+    }, [standaloneMatches, orgs, setStandaloneMatchesSilent, setOrgsSilent]);
 
     useEffect(() => {
         if (profile?.role === 'Guest' && !['media', 'scorer', 'setup'].includes(activeTab)) {
@@ -347,7 +389,7 @@ const App: React.FC = () => {
         return allFixtures.find(f => f.id === viewMatchId);
     }, [viewMatchId, allFixtures]);
 
-    // --- ACTIVE MATCH PERSISTENCE ---
+    // --- ACTIVE MATCH PERSISTENCE & REDIRECTION ---
     useEffect(() => {
         if (activeMatch) {
             localStorage.setItem('cc_active_match_id', activeMatch.id);
@@ -356,14 +398,30 @@ const App: React.FC = () => {
         }
     }, [activeMatch?.id]);
 
-    // Auto-restore active match on initialization if matches are loaded
+    // Auto-restore / Direct Scorer Routing
     useEffect(() => {
-        if (!activeMatch && allFixtures.length > 0 && profile?.role !== 'Guest') {
+        if (allFixtures.length > 0 && profile?.role !== 'Guest') {
+            const params = new URLSearchParams(window.location.search);
+            const matchIdParam = params.get('matchId');
             const savedId = localStorage.getItem('cc_active_match_id');
-            if (savedId) {
+
+            // Priority 1: Match ID in URL + You are the scorer
+            if (matchIdParam) {
+                const urlMatch = allFixtures.find(f => f.id === matchIdParam);
+                if (urlMatch && urlMatch.status === 'Live' && urlMatch.scorerId === profile.id) {
+                    setActiveMatch(urlMatch);
+                    setActiveTab('scorer');
+                    return; // Early exit
+                }
+            }
+
+            // Priority 2: Persistent active match in storage (ask to resume)
+            if (!activeMatch && savedId && !showResumeModal) {
                 const match = allFixtures.find(f => f.id === savedId && f.status === 'Live');
-                if (match) {
-                    setActiveMatch(match);
+                if (match && match.scorerId === profile.id) {
+                    // We don't auto-set activeMatch here to avoid jumping views unexpectedly on every refresh
+                    // unless they just opened the app.
+                    setShowResumeModal(true);
                 }
             }
         }
@@ -1510,7 +1568,7 @@ const App: React.FC = () => {
                                 return (
                                     <div className="grid gap-4">
                                         {myMatches.map(match => (
-                                            <div key={match.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between hover:shadow-md transition-all cursor-pointer" onClick={() => { setViewMatchId(match.id); setActiveTab('media'); }}>
+                                            <div key={match.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex items-center justify-between hover:shadow-md transition-all group">
                                                 <div className="flex items-center gap-4">
                                                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-white text-xs ${match.status === 'Live' ? 'bg-red-500 animate-pulse' : match.status === 'Completed' ? 'bg-emerald-500' : 'bg-slate-400'}`}>
                                                         {match.status === 'Live' ? 'LIVE' : match.status === 'Completed' ? 'FT' : 'SCH'}
@@ -1520,8 +1578,22 @@ const App: React.FC = () => {
                                                         <p className="text-xs text-slate-500 font-bold">{new Date(match.date).toLocaleDateString()} • {match.venue}</p>
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <div className="font-black text-indigo-600 dark:text-indigo-400 text-sm">{match.result || 'No Result'}</div>
+                                                <div className="flex items-center gap-3">
+                                                    {match.status === 'Live' && match.scorerId === profile.id ? (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setActiveMatch(match); setActiveTab('scorer'); }}
+                                                            className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg"
+                                                        >
+                                                            Resume Scoring
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => { setViewMatchId(match.id); setActiveTab('media'); }}
+                                                            className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+                                                        >
+                                                            View Details
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -2096,6 +2168,68 @@ const App: React.FC = () => {
 
                 </div>
             </Layout>
+
+            {/* Resume Game Modal */}
+            {showResumeModal && ongoingMatch && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 shadow-2xl border border-slate-100 dark:border-slate-800 text-center relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-8 opacity-5">
+                            <div className="text-8xl">🏏</div>
+                        </div>
+                        <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/20 rounded-3xl flex items-center justify-center text-4xl mb-6 mx-auto shadow-inner">⚡</div>
+                        <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight italic">Resume Live Scoring?</h2>
+                        <p className="text-slate-500 font-bold mb-8 text-sm">
+                            You have an active match in progress: <br />
+                            <span className="text-emerald-600 dark:text-emerald-400">{ongoingMatch.teamAName} vs {ongoingMatch.teamBName}</span>
+                        </p>
+                        <div className="grid gap-3">
+                            <button
+                                onClick={() => {
+                                    setActiveMatch(ongoingMatch);
+                                    setActiveTab('scorer');
+                                    setShowResumeModal(false);
+                                }}
+                                className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:shadow-emerald-500/20 hover:scale-[1.02] transition-all"
+                            >
+                                Resume Game
+                            </button>
+                            <button
+                                onClick={() => {
+                                    localStorage.removeItem('cc_active_match_id');
+                                    setShowResumeModal(false);
+                                }}
+                                className="w-full text-slate-400 font-black uppercase text-[10px] tracking-widest py-3 hover:text-slate-600 transition-colors"
+                            >
+                                Dismiss
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Floating Scorer Banner */}
+            {ongoingMatch && activeTab !== 'scorer' && (
+                <div className="fixed bottom-24 left-4 right-4 z-[60] animate-in slide-in-from-bottom-8 duration-500">
+                    <div
+                        onClick={() => {
+                            setActiveMatch(ongoingMatch);
+                            setActiveTab('scorer');
+                        }}
+                        className="bg-slate-900 dark:bg-indigo-950 text-white p-4 rounded-3xl shadow-2xl flex items-center justify-between cursor-pointer border border-white/10 hover:scale-[1.02] transition-all group"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-emerald-500 rounded-2xl flex items-center justify-center text-xl animate-pulse">🏏</div>
+                            <div>
+                                <h4 className="font-black text-[10px] uppercase tracking-widest text-emerald-400 mb-0.5">Live Scoring Active</h4>
+                                <p className="text-xs font-bold text-white/80">{ongoingMatch.teamAName} vs {ongoingMatch.teamBName}</p>
+                            </div>
+                        </div>
+                        <div className="bg-white/10 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest group-hover:bg-emerald-600 transition-all">
+                            Back to Game
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Auth Modal */}
             <LoginModal

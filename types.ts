@@ -395,6 +395,7 @@ export type Organization = {
   isPublic?: boolean;
   allowUserContent?: boolean;
   allowMemberEditing?: boolean; // NEW: Global switch for the council
+  pushToGlobalFeed?: boolean; // NEW: Controls if org matches appear in global Media Center feed (default: true)
   parentOrgIds?: string[];
   childOrgIds?: string[];
   tournaments: Tournament[];
@@ -513,7 +514,9 @@ export type MatchPointsData = {
 export type MatchFixture = {
   id: string;
   tournamentId?: string;
+  tournamentName?: string; // NEW: For display purposes
   groupId?: string;
+  groupName?: string; // NEW: For display purposes
   stage?: 'Group' | 'Semi-Final' | 'Final' | 'Qualifier' | 'Eliminator';
   relatedMatchId?: string;
   format?: TournamentFormat;
@@ -524,7 +527,11 @@ export type MatchFixture = {
   teamAName: string;
   teamBName: string;
   date: string;
+  timestamp?: number; // NEW: Unix timestamp for duplicate detection
   venue: string;
+  venueLatitude?: number; // NEW: For maps integration
+  venueLongitude?: number; // NEW: For maps integration
+  venueAddress?: string; // NEW: Full address for geocoding
   status: 'Scheduled' | 'Live' | 'Completed';
   isOfficial?: boolean;
   isArchived?: boolean;
@@ -548,7 +555,12 @@ export type MatchFixture = {
   reportSubmission?: MatchReportSubmission;
   assignedUmpireIds?: string[]; // User IDs of assigned umpires
   umpireReport?: UmpireMatchReport; // Umpire's official match report
-  pointsData?: MatchPointsData; // NEW
+  pointsData?: MatchPointsData;
+  // NEW: Duplicate Detection Fields
+  gameId?: string; // Unique identifier for the actual game (teamA_teamB_date)
+  isDuplicate?: boolean; // Is this a duplicate match report?
+  primaryMatchId?: string; // If duplicate, reference to the primary match
+  duplicateReason?: string; // Why this is marked as duplicate
 };
 
 export type ExtrasBreakdown = {
