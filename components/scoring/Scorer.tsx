@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { MatchFixture, Team, Organization, UserProfile, MediaPost, MatchState, BallEvent } from '../../types';
 import { getBallColor } from '../../utils/cricket-engine';
 import { generateCommentary, generateEndOfOverCommentary } from '../../utils/commentaryGenerator.ts';
+import { generateMatchNews } from '../../utils/newsGenerator.ts';
 import { useMatchEngine } from '../../scoring/hooks/useMatchEngine.ts';
 import { useScoringPad } from '../../scoring/hooks/useScoringPad.ts';
 import { useMatchRules } from '../../scoring/hooks/useMatchRules.ts';
@@ -342,6 +343,10 @@ export const Scorer: React.FC<ScorerProps> = ({
 
     const handleMatchFinish = () => {
         engine.endInnings(true);
+        // Generat AI News
+        const news = generateMatchNews(match, engine.state);
+        onAddMediaPost(news);
+
         // Persist final status as 'Completed'
         onUpdateMatchState(match.id, engine.state, 'Completed');
         onComplete();
@@ -380,6 +385,10 @@ export const Scorer: React.FC<ScorerProps> = ({
     const handleManualConclude = () => {
 
         engine.endInnings(true);
+        // Generate AI News
+        const news = generateMatchNews(match, engine.state);
+        onAddMediaPost(news);
+
         onUpdateMatchState(match.id, engine.state, 'Completed');
         onComplete();
     };

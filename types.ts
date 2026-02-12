@@ -561,6 +561,8 @@ export type MatchFixture = {
   isDuplicate?: boolean; // Is this a duplicate match report?
   primaryMatchId?: string; // If duplicate, reference to the primary match
   duplicateReason?: string; // Why this is marked as duplicate
+  orgId?: string; // NEW: Organization ID for permission checks
+  createdBy?: string; // NEW: Creator ID for standalone matches
 };
 
 export type ExtrasBreakdown = {

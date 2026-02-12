@@ -124,7 +124,8 @@ const App: React.FC = () => {
 
     // Shared Link Match Summary
     const [summaryMatch, setSummaryMatch] = useState<MatchFixture | null>(null);
-    const [readOnlyMode, setReadOnlyMode] = useState(false);
+
+    // Removed readOnlyMode state - derived from activeMatch and profile instead
 
     // Global User Directory (Client-side simulation)
     const [globalUsers, setGlobalUsers] = useState<UserProfile[]>([]);
@@ -366,7 +367,8 @@ const App: React.FC = () => {
 
 
     const allFixtures = useMemo(() => {
-        return [...standaloneMatches, ...orgs.flatMap(o => o.fixtures)];
+        const orgFixtures = orgs.flatMap(o => o.fixtures.map(f => ({ ...f, orgId: o.id })));
+        return [...standaloneMatches, ...orgFixtures];
     }, [standaloneMatches, orgs]);
 
     const ongoingMatch = useMemo(() => {
@@ -442,22 +444,12 @@ const App: React.FC = () => {
             const matchIdParam = params.get('matchId');
             const savedId = localStorage.getItem('cc_active_match_id');
 
-            // Priority 1: Match ID in URL + You are the scorer
+            // Priority 1: Match ID in URL
             if (matchIdParam) {
                 const urlMatch = allFixtures.find(f => f.id === matchIdParam);
-                if (urlMatch && urlMatch.status === 'Live' && urlMatch.scorerId === profile.id) {
+                if (urlMatch) {
                     setActiveMatch(urlMatch);
                     setActiveTab('scorer');
-                    setActiveTab('scorer');
-                    return; // Early exit
-                } else if (urlMatch) {
-                    // Priority 1.5: Match ID in URL + You are NOT the scorer -> Show Scorer (Read Only)
-                    // Delay slightly to ensure data is loaded
-                    setTimeout(() => {
-                        setReadOnlyMode(true);
-                        setActiveMatch(urlMatch);
-                        setActiveTab('scorer');
-                    }, 500);
                 }
             }
 
@@ -472,6 +464,27 @@ const App: React.FC = () => {
             }
         }
     }, [allFixtures.length, profile?.id]);
+
+    // DERIVED READ-ONLY STATE
+    const isReadOnly = useMemo(() => {
+        if (!activeMatch) return false;
+        if (!profile || profile.role === 'Guest') return true;
+
+        // Writes allowed if:
+        // 1. Assigned Scorer
+        if (activeMatch.scorerId === profile.id) return false;
+        // 2. Creator
+        if (activeMatch.createdBy === profile.id) return false;
+        // 3. Admin of the Organization
+        if (profile.role === 'Administrator' && activeMatch.orgId) {
+            const org = orgs.find(o => o.id === activeMatch.orgId);
+            if (org?.members.some(m => m.userId === profile.id && m.role === 'Administrator')) return false;
+        }
+        // 4. Super Admin
+        if (profile.handle === 'Trinity' || profile.handle === '@Trinity') return false;
+
+        return true;
+    }, [activeMatch, profile, orgs]);
 
 
     const hireableScorers = useMemo(() => {
@@ -1215,13 +1228,21 @@ const App: React.FC = () => {
     };
 
     const handleAcceptFixture = async (fixtureId: string) => {
+        // 1. Update State Locally First
         const nextOrgs = orgs.map(o => ({
             ...o,
-            fixtures: o.fixtures.map(f => f.id === fixtureId ? { ...f, scorerId: profile.id } : f)
+            fixtures: o.fixtures.map(f => f.id === fixtureId ? { ...f, scorerId: profile.id, status: f.status === 'Scheduled' ? 'Live' : f.status } : f)
         }));
         setOrgs(nextOrgs);
         forcePush();
-        alert('Fixture Accepted!');
+
+        // 2. Launch Match Interface
+        const targetMatch = nextOrgs.flatMap(o => o.fixtures).find(f => f.id === fixtureId);
+        if (targetMatch) {
+            setActiveMatch(targetMatch);
+            // readOnlyMode is now derived automatically
+            setActiveTab('scorer');
+        }
     };
 
     const handleSwitchTab = (tab: any) => {
@@ -1234,8 +1255,6 @@ const App: React.FC = () => {
                 console.log('Auto-resuming ongoing match from menu click');
                 setActiveMatch(ongoingMatch);
             }
-            // Reset read-only mode when navigating manually (unless specifically entering a read-only context)
-            setReadOnlyMode(false);
         }
         setActiveTab(tab);
     };
@@ -1797,6 +1816,7 @@ const App: React.FC = () => {
                                     onUpdateProfile={updateProfile}
                                     onAcceptFixture={handleAcceptFixture}
                                     onBack={() => handleSwitchTab('media')}
+                                    onUpdateMatchState={handleUpdateMatchState}
                                 />
                             ) : (
                                 <PlayerCareer
@@ -1902,7 +1922,6 @@ const App: React.FC = () => {
                                         following={following}
                                         onToggleFollow={toggleFollowing}
                                         currentUserId={profile.id}
-                                        currentUserProfile={profile}
                                         onBulkAddPlayers={() => { }}
                                         onAddGroup={() => { }}
                                         onUpdateGroupTeams={() => { }}
@@ -2078,7 +2097,7 @@ const App: React.FC = () => {
                             onAddMediaPost={handleAddMediaPost}
                             onExit={() => setActiveTab('home')}
                             currentUserId={profile.id}
-                            readOnly={readOnlyMode}
+                            readOnly={isReadOnly}
                         />
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full text-center pb-20">

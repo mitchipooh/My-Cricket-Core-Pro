@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserProfile, MatchFixture } from '../../types';
+import { UserProfile, MatchFixture, MatchState } from '../../types';
 
 interface ScorerProfileProps {
     profile: UserProfile;
@@ -7,13 +7,14 @@ interface ScorerProfileProps {
     fixtures: MatchFixture[];
     onAcceptFixture: (fixtureId: string) => void;
     onBack?: () => void;
+    onUpdateMatchState?: (matchId: string, newState: MatchState, status?: string) => void;
 }
 
-export const ScorerProfile: React.FC<ScorerProfileProps> = ({ profile, onUpdateProfile, fixtures, onAcceptFixture, onBack }) => {
+export const ScorerProfile: React.FC<ScorerProfileProps> = ({ profile, onUpdateProfile, fixtures, onAcceptFixture, onBack, onUpdateMatchState }) => {
     const details = profile.scorerDetails || { isHireable: false, hourlyRate: 0, experienceYears: 0, bio: '' };
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState(details);
-    const [activeTab, setActiveTab] = useState<'MY_GAMES' | 'AVAILABLE'>('MY_GAMES');
+    const [activeTab, setActiveTab] = useState<'MY_GAMES' | 'AVAILABLE' | 'HISTORY'>('MY_GAMES');
 
     // Filter fixtures
     const scoutedGames = fixtures.filter(f => f && f.scorerId === profile.id);
@@ -37,6 +38,28 @@ export const ScorerProfile: React.FC<ScorerProfileProps> = ({ profile, onUpdateP
     };
 
     const incompleteGames = scoutedGames.filter(f => f.status === 'Live');
+    const historyGames = fixtures.filter(f => f && (f.scorerId === profile.id || f.createdBy === profile.id)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const handleEndMatch = (match: MatchFixture) => {
+        if (!onUpdateMatchState) return;
+        if (window.confirm('Are you sure you want to forcibly end this match? This cannot be undone.')) {
+            // Use existing saved state or minimal valid state if missing
+            const finalState = match.savedState || {
+                matchId: match.id,
+                isCompleted: true,
+                inningsScores: [],
+                battingTeamId: match.teamAId,
+                bowlingTeamId: match.teamBId,
+                overs: [],
+                players: {},
+                currentBatterId: '',
+                currentNonStrikerId: '',
+                currentBowlerId: ''
+            } as any;
+
+            onUpdateMatchState(match.id, finalState, 'Completed');
+        }
+    };
 
     return (
         <div className="animate-in slide-in-from-bottom-8 min-h-screen bg-slate-50 pb-20">
@@ -50,10 +73,10 @@ export const ScorerProfile: React.FC<ScorerProfileProps> = ({ profile, onUpdateP
                         </p>
                     </div>
                     <button
-                        onClick={() => setActiveTab('MY_GAMES')}
+                        onClick={() => setActiveTab('HISTORY')}
                         className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
                     >
-                        View Assignments
+                        Resolve Issues
                     </button>
                 </div>
             )}
@@ -103,12 +126,18 @@ export const ScorerProfile: React.FC<ScorerProfileProps> = ({ profile, onUpdateP
 
             {/* Menu / Tabs - Collapsed to Top */}
             <div className="px-4 py-4">
-                <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200">
+                <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200 gap-1">
                     <button
                         onClick={() => setActiveTab('MY_GAMES')}
                         className={`flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'MY_GAMES' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
                     >
                         Assignments
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('HISTORY')}
+                        className={`flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'HISTORY' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
+                    >
+                        Recent Games
                     </button>
                     <button
                         onClick={() => setActiveTab('AVAILABLE')}
@@ -155,6 +184,69 @@ export const ScorerProfile: React.FC<ScorerProfileProps> = ({ profile, onUpdateP
                     ) : (
                         <div className="text-center p-8 text-slate-400 text-xs font-bold uppercase tracking-widest">No assigned games</div>
                     )
+                )}
+
+                {activeTab === 'HISTORY' && (
+                    <div className="space-y-4">
+                        {historyGames.length === 0 && (
+                            <div className="text-center p-12 bg-white rounded-[2rem] border-2 border-dashed border-slate-100">
+                                <span className="text-4xl">📜</span>
+                                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-4">No scoring history found.</p>
+                            </div>
+                        )}
+                        {historyGames.map(game => (
+                            <div key={game.id} className="bg-white rounded-[1.5rem] p-5 shadow-sm border border-slate-100 relative overflow-hidden group">
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black text-xs ${game.status === 'Live' ? 'bg-red-500 animate-pulse' : game.status === 'Completed' ? 'bg-slate-900' : 'bg-slate-200 text-slate-500'}`}>
+                                            {game.status === 'Live' ? 'LIVE' : game.status === 'Completed' ? 'FT' : 'SCH'}
+                                        </div>
+                                        <div>
+                                            <h3 className="font-black text-slate-900 leading-tight">{game.teamAName} vs {game.teamBName}</h3>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{formatDate(game.date)} • {game.venue}</p>
+                                        </div>
+                                    </div>
+                                    {game.status === 'Live' && (
+                                        <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest">In Progress</span>
+                                    )}
+                                </div>
+
+                                <div className="flex gap-2">
+                                    {game.status !== 'Completed' ? (
+                                        <>
+                                            <button
+                                                onClick={() => onAcceptFixture(game.id)} // Re-using accept to trigger navigation/setup in App.tsx usually? No, accept usually assigns.
+                                                // Wait, we need to Resume.
+                                                // App.tsx handles "Resume" by setting activeMatch.
+                                                // ScorerProfile doesn't have setActiveMatch.
+                                                // It has onAcceptFixture.
+                                                // If 'onAcceptFixture' actually means "Open Scorer", then fine.
+                                                // Looking at App.tsx usage of ScorerProfile:
+                                                // onAcceptFixture={handleAcceptFixture}
+                                                // handleAcceptFixture implementation?
+                                                className="flex-1 py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-lg"
+                                            >
+                                                Resume Scoring
+                                            </button>
+                                            {onUpdateMatchState && (
+                                                <button
+                                                    onClick={() => handleEndMatch(game)}
+                                                    className="px-6 py-3 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-red-100"
+                                                >
+                                                    End Match
+                                                </button>
+                                            )}
+                                        </>
+
+                                    ) : (
+                                        <button className="w-full py-3 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-not-allowed">
+                                            Match Completed
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 )}
 
                 {activeTab === 'AVAILABLE' && (

@@ -566,6 +566,14 @@ export const MobileScorerLayout = ({
                         >
                             🏁
                         </button>
+                        <button
+                            onClick={onPinToMedia}
+                            disabled={!isAuthorized}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isAuthorized ? 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200 active:scale-90' : 'bg-gray-100 text-gray-300'}`}
+                            title="Post Update to Feed"
+                        >
+                            📢
+                        </button>
                         <button onClick={handleShareMatch} className="w-8 h-8 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center hover:bg-teal-200 transition-all active:scale-90 relative" title="Share Match">
                             🔗
                             {showCopiedToast && (
