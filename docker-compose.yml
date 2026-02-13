@@ -6,9 +6,9 @@ services:
     container_name: cricket-core-db
     restart: always
     environment:
-      - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_DB=${DB_NAME:-cricket_core}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -22,19 +22,44 @@ services:
     container_name: cricket-core-backend
     restart: always
     environment:
-      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-cricket_core}
-      - PORT=3001
-      - NODE_ENV=production
-      - JWT_SECRET=${JWT_SECRET}
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      PORT: 3001
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET}
     depends_on:
       - db
     networks:
       - cricket-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`api.cricketcore.com`)"
-      - "traefik.http.routers.backend.entrypoints=websecure"
-      - "traefik.http.routers.backend.tls.certresolver=myresolver"
+
+  scorer:
+    build:
+      context: .
+      dockerfile: apps/scorer/Dockerfile
+    restart: always
+    environment:
+      VITE_API_URL: ${VITE_API_URL}
+    networks:
+      - cricket-network
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    restart: always
+    environment:
+      VITE_API_URL: ${VITE_API_URL}
+    networks:
+      - cricket-network
+
+  media:
+    build:
+      context: .
+      dockerfile: apps/media/Dockerfile
+    restart: always
+    environment:
+      VITE_API_URL: ${VITE_API_URL}
+    networks:
+      - cricket-network
 
 networks:
   cricket-network:
