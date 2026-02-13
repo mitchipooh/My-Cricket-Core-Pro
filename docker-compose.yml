@@ -17,8 +17,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: cricket-core-backend
     restart: always
     environment:
@@ -30,6 +30,10 @@ services:
       - db
     networks:
       - cricket-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=PathPrefix(`/api`)"
+      - "traefik.http.services.backend.loadbalancer.server.port=3001"
 
   scorer:
     build:
@@ -40,6 +44,10 @@ services:
       VITE_API_URL: ${VITE_API_URL}
     networks:
       - cricket-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.scorer.rule=Host(`score.cricketcore.com`)"
+      - "traefik.http.services.scorer.loadbalancer.server.port=80"
 
   admin:
     build:
@@ -50,6 +58,10 @@ services:
       VITE_API_URL: ${VITE_API_URL}
     networks:
       - cricket-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.admin.rule=Host(`admin.cricketcore.com`)"
+      - "traefik.http.services.admin.loadbalancer.server.port=80"
 
   media:
     build:
@@ -60,6 +72,10 @@ services:
       VITE_API_URL: ${VITE_API_URL}
     networks:
       - cricket-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.media.rule=Host(`hub.cricketcore.com`)"
+      - "traefik.http.services.media.loadbalancer.server.port=80"
 
 networks:
   cricket-network:
