@@ -1,25 +1,7 @@
 
 import { Organization, Team, MatchFixture, MediaPost, UserProfile, GameIssue, MatchReportSubmission, UmpireMatchReport } from '../types';
 
-declare global {
-  interface Window {
-    wpApiSettings?: {
-      root: string;
-      nonce: string;
-      site_url: string;
-      current_user_id: number;
-      plugin_url?: string;
-      // Fix: Added google_client_id to global window settings for consistent typing
-      google_client_id?: string;
-    };
-  }
-}
-
 import { supabase } from '../lib/supabase';
-
-const IS_WP = typeof window !== 'undefined' && !!window.wpApiSettings;
-const SYNC_URL = IS_WP ? `${window.wpApiSettings!.root}cricket-core/v1/sync` : null;
-const USER_URL = IS_WP ? `${window.wpApiSettings!.root}cricket-core/v1/user` : null;
 
 // --- GLOBAL LEAGUE DATA SYNC ---
 
@@ -650,9 +632,6 @@ export const fetchGlobalSync = async (userId?: string): Promise<{
 
   } catch (error) {
     console.error("Relational Fetch Error:", error);
-    if (SYNC_URL) {
-      // Logic for WP fallback would go here
-    }
     return null;
   }
 };
@@ -755,23 +734,7 @@ export const pushUserData = async (userId: string, data: UserDataPayload) => {
   if (supabaseError) {
     console.error("Supabase User Sync Error:", supabaseError);
   }
-
-  if (!USER_URL) return !supabaseError;
-
-  try {
-    const response = await fetch(`${USER_URL}?user_id=${encodeURIComponent(userId)}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-WP-Nonce': window.wpApiSettings!.nonce
-      },
-      body: JSON.stringify(data)
-    });
-    return response.ok;
-  } catch (error) {
-    console.error("User Data WP Sync Failed:", error);
-    return false;
-  }
+  return !supabaseError;
 };
 
 export const fetchUserData = async (userId: string): Promise<UserDataPayload | null> => {
@@ -819,23 +782,6 @@ export const fetchUserData = async (userId: string): Promise<UserDataPayload | n
     console.warn("Supabase User Fetch error:", error.message);
   }
 
-  if (!USER_URL) return null;
-
-  try {
-    const response = await fetch(`${USER_URL}?user_id=${encodeURIComponent(userId)}`, {
-      method: 'GET',
-      headers: {
-        'X-WP-Nonce': window.wpApiSettings!.nonce
-      }
-    });
-    if (!response.ok) return null;
-    const wpData = await response.json();
-    if (!wpData || Object.keys(wpData).length === 0) return null;
-    return wpData;
-  } catch (error) {
-    console.error("User Data WP Fetch Failed:", error);
-    return null;
-  }
   return null;
 }
 

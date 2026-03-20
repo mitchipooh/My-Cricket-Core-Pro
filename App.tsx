@@ -158,7 +158,7 @@ const App: React.FC = () => {
 
     // --- INITIALIZATION EFFECT ---
     useEffect(() => {
-        const logoPath = window.wpApiSettings?.plugin_url ? `${window.wpApiSettings.plugin_url}logo.jpg` : 'logo.jpg';
+        const logoPath = 'logo.jpg';
         const img = new Image();
         img.src = logoPath;
         const timer = setTimeout(() => {
