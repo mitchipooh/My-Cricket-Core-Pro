@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { MediaCenter } from './components/MediaCenter';
-import { StatsAnalytics } from './components/StatsAnalytics';
-import { GlobalDashboard } from './components/GlobalDashboard';
-import { DataProvider, useData } from './contexts/DataProvider';
+import { MediaCenter } from '@shared/components/media/MediaCenter';
+import { StatsAnalytics } from '@shared/components/analytics/StatsAnalytics';
+import { GlobalDashboard } from '@shared/components/dashboard/GlobalDashboard';
+import { DataProvider, useData } from '@shared/contexts/DataProvider';
 import './index.css';
 
 const MediaAppContent: React.FC = () => {
+    const { orgs, standaloneMatches, profile } = useData();
     const [activeTab, setActiveTab] = useState<'hub' | 'media' | 'stats'>('hub');
 
     return (
@@ -41,7 +42,16 @@ const MediaAppContent: React.FC = () => {
             </nav>
 
             <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                {activeTab === 'hub' && <GlobalDashboard />}
+                {activeTab === 'hub' && <GlobalDashboard 
+                    profile={profile!} 
+                    organizations={orgs} 
+                    fixtures={standaloneMatches} 
+                    topBatsmen={[]} 
+                    topBowlers={[]} 
+                    onStartMatch={() => {}} 
+                    onViewMatch={() => {}} 
+                    onViewTeam={() => {}} 
+                />}
                 {activeTab === 'media' && <MediaCenter />}
                 {activeTab === 'stats' && <StatsAnalytics />}
             </main>

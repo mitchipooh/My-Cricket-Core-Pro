@@ -1476,8 +1476,8 @@ const App: React.FC = () => {
                 onToggleSetting={(k) => updateSettings({ ...settings, [k]: k === 'devMode' ? !settings.devMode : !settings[k] })}
                 onEditProfile={() => {
                     if (profile.role === 'Guest') {
-                        setProfileSetupMode('CREATE');
-                        setEditingProfile(true);
+                        setAuthModalMode('signin');
+                        setShowLoginModal(true);
                     } else {
                         setEditingProfile(true);
                         setProfileSetupMode('CREATE'); // Actually irrelevant since skipping setup mode reset inside
@@ -1491,12 +1491,12 @@ const App: React.FC = () => {
                     updateProfile(MOCK_GUEST_PROFILE);
                 }}
                 onSignIn={() => {
-                    setProfileSetupMode('LOGIN');
-                    setEditingProfile(true);
+                    setAuthModalMode('signin');
+                    setShowLoginModal(true);
                 }}
                 onSignUp={() => {
-                    setProfileSetupMode('CREATE');
-                    setEditingProfile(true);
+                    setAuthModalMode('signup');
+                    setShowLoginModal(true);
                 }}
                 onSwitchProfile={handleSwitchProfile}
                 showCaptainHub={true}

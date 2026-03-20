@@ -1,60 +1,163 @@
 import React, { useState } from 'react';
-import { Scorer } from './components/Scorer';
-import { MatchSetup } from './components/MatchSetup';
-import { DataProvider, useData } from './contexts/DataProvider';
-import { MatchFixture } from '@shared/types';
+import { Scorer } from '@shared/components/scoring/Scorer';
+import { MatchSetup } from '@shared/components/setup/MatchSetup';
+import { DataProvider, useData } from '@shared/contexts/DataProvider';
+import { MatchFixture, MatchState } from '@shared/types';
 import './index.css';
 
+import { ProTools } from '@shared/components/ProTools';
+
 const ScorerAppContent: React.FC = () => {
-    const { standaloneMatches, orgs } = useData();
+    const { 
+        profile, 
+        allTeams, 
+        orgs, 
+        standaloneMatches, 
+        setOrgs, 
+        setStandaloneMatches 
+    } = useData();
+    
     const [activeMatch, setActiveMatch] = useState<MatchFixture | null>(null);
     const [showSetup, setShowSetup] = useState(false);
+    const [view, setView] = useState<'matches' | 'pro'>('matches');
+
+    const handleMatchReady = (match: MatchFixture) => {
+        setStandaloneMatches([...standaloneMatches, match]);
+        setActiveMatch(match);
+        setShowSetup(false);
+    };
+
+    const handleUpdateMatchState = (matchId: string, newState: MatchState) => {
+        setStandaloneMatches(standaloneMatches.map(m => 
+            m.id === matchId ? { ...m, status: newState.isCompleted ? 'Completed' : 'Live' } : m
+        ));
+    };
 
     if (activeMatch) {
-        return <Scorer match={activeMatch} onBack={() => setActiveMatch(null)} />;
+        return (
+            <Scorer 
+                match={activeMatch}
+                teams={allTeams}
+                userRole={profile?.role || 'Guest'}
+                organizations={orgs}
+                onUpdateOrgs={setOrgs}
+                onUpdateMatchState={handleUpdateMatchState}
+                onComplete={() => {
+                    setActiveMatch(null);
+                    setShowSetup(false);
+                }}
+                onRequestNewMatch={() => {
+                    setActiveMatch(null);
+                    setShowSetup(true);
+                }}
+                onAddMediaPost={() => {}}
+                onExit={() => {
+                    setActiveMatch(null);
+                    setShowSetup(false);
+                }}
+                currentUserId={profile?.id || ''}
+            />
+        );
     }
 
     if (showSetup) {
         return (
-            <MatchSetup
-                onComplete={(match) => {
-                    setActiveMatch(match);
-                    setShowSetup(false);
-                }}
+            <MatchSetup 
+                teams={allTeams}
+                onMatchReady={handleMatchReady}
                 onCancel={() => setShowSetup(false)}
             />
         );
     }
 
     const allFixtures = [...standaloneMatches, ...orgs.flatMap(o => o.fixtures)];
+    const allPlayers = allTeams.flatMap(t => t.players || []);
 
     return (
-        <div className="p-4 max-w-lg mx-auto">
-            <h1 className="text-2xl font-bold mb-4">Cricket-Core Scorer</h1>
-            <button
-                onClick={() => setShowSetup(true)}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg mb-6 font-semibold"
-            >
-                New Quick Match
-            </button>
-
-            <h2 className="text-lg font-semibold mb-2">Recent Matches</h2>
-            <div className="space-y-3">
-                {allFixtures.map(m => (
-                    <div
-                        key={m.id}
-                        className="p-4 border rounded-lg bg-white shadow-sm flex justify-between items-center"
-                        onClick={() => setActiveMatch(m)}
+        <div className="min-h-screen bg-gray-50 flex flex-col">
+            <div className="bg-white border-b sticky top-0 z-20 shadow-sm">
+                <div className="max-w-xl mx-auto flex">
+                    <button 
+                        onClick={() => setView('matches')}
+                        className={`flex-1 py-4 text-sm font-black uppercase tracking-widest border-b-4 transition-all ${view === 'matches' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}
                     >
-                        <div>
-                            <div className="font-medium">{m.teamAName} vs {m.teamBName}</div>
-                            <div className="text-sm text-gray-500">{m.date}</div>
+                        Live Scorer
+                    </button>
+                    <button 
+                        onClick={() => setView('pro')}
+                        className={`flex-1 py-4 text-sm font-black uppercase tracking-widest border-b-4 transition-all ${view === 'pro' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-400'}`}
+                    >
+                        Pro Tools
+                    </button>
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+                <div className="p-4 max-w-xl mx-auto pb-24">
+                    {view === 'matches' ? (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm mb-8 text-center">
+                                <h1 className="text-3xl font-black text-slate-900 mb-2">CricketCore</h1>
+                                <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest mb-8">Professional Scoring Suite</p>
+                                
+                                <button
+                                    onClick={() => setShowSetup(true)}
+                                    className="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-blue-200 hover:bg-blue-500 hover:-translate-y-1 transition-all active:scale-95"
+                                >
+                                    Setup New Match
+                                </button>
+                            </div>
+
+                            <div className="flex items-center gap-3 mb-6 px-2">
+                                <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Recent & Available Fixtures</h2>
+                                <div className="h-px bg-slate-200 flex-1"></div>
+                            </div>
+                            
+                            <div className="space-y-4">
+                                {allFixtures.length === 0 ? (
+                                    <div className="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-200">
+                                        <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">No active fixtures found</p>
+                                    </div>
+                                ) : (
+                                    allFixtures.map(m => (
+                                        <div
+                                            key={m.id}
+                                            className="p-6 bg-white rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group"
+                                            onClick={() => setActiveMatch(m)}
+                                        >
+                                            <div className="flex justify-between items-center mb-6">
+                                                <div className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${m.status === 'Live' ? 'bg-red-50 text-red-600 ring-1 ring-red-100' : 'bg-slate-100 text-slate-500'}`}>
+                                                    {m.status}
+                                                </div>
+                                                <div className="text-[10px] font-bold text-slate-400">{m.date}</div>
+                                            </div>
+                                            
+                                            <div className="flex items-center justify-between gap-6">
+                                                <div className="flex-1 text-center">
+                                                    <div className="text-sm font-black text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{m.teamAName}</div>
+                                                </div>
+                                                <div className="text-[10px] font-black text-slate-300">VS</div>
+                                                <div className="flex-1 text-center">
+                                                    <div className="text-sm font-black text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{m.teamBName}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
-                        <div className={`text-xs px-2 py-1 rounded ${m.status === 'Live' ? 'bg-red-100 text-red-600' : 'bg-gray-100'}`}>
-                            {m.status}
+                    ) : (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <ProTools 
+                                players={allPlayers} 
+                                organizations={orgs}
+                                onSaveAssessment={(pid, cat, sub, score, time, notes) => {
+                                    console.log('Saving Pro Assessment:', { pid, cat, sub, score, time, notes });
+                                }}
+                            />
                         </div>
-                    </div>
-                ))}
+                    )}
+                </div>
             </div>
         </div>
     );

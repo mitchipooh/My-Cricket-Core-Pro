@@ -9,13 +9,14 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "react": "^18.2.0",
-        "react-dom": "^18.2.0",
-        "framer-motion": "^10.12.16"
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0",
+        "framer-motion": "^10.12.16",
+        "@cricket-core/shared": "*"
     },
     "devDependencies": {
-        "@types/react": "^18.2.14",
-        "@types/react-dom": "^18.2.6",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
         "@vitejs/plugin-react": "^4.0.1",
         "typescript": "^5.0.2",
         "vite": "^4.3.9"

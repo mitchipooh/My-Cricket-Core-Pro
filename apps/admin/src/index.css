@@ -1,0 +1,335 @@
+:root {
+    transition: background-color 0.3s ease, color 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Momentum Scrolling for mobile - Essential for "native" feel */
+.scroll-container {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Custom scrollbar for Desktop */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* Custom scrollbar for player lists */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Fix for flex-children scrollability */
+.min-h-0 {
+    min-height: 0;
+}
+
+/* Light Theme Implementation Overrides (High Contrast for Sunlight) */
+.light-theme {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
+}
+
+.light-theme .bg-slate-900 {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #000 !important;
+}
+
+.light-theme .bg-slate-950 {
+    background-color: #f1f5f9 !important;
+    color: #000 !important;
+}
+
+.light-theme .bg-slate-800 {
+    background-color: #ffffff !important;
+    border-color: #94a3b8 !important;
+    color: #000 !important;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.light-theme .bg-slate-700 {
+    background-color: #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+.light-theme .bg-slate-600 {
+    background-color: #cbd5e1 !important;
+}
+
+/* Text Contrast Overrides */
+.light-theme .text-white {
+    color: #0f172a !important;
+}
+
+.light-theme .text-slate-200 {
+    color: #1e293b !important;
+}
+
+.light-theme .text-slate-300 {
+    color: #334155 !important;
+}
+
+.light-theme .text-slate-400 {
+    color: #475569 !important;
+    font-weight: 700 !important;
+}
+
+.light-theme .text-slate-500 {
+    color: #64748b !important;
+}
+
+/* Border Visibility */
+.light-theme .border-slate-700 {
+    border-color: #cbd5e1 !important;
+}
+
+.light-theme .border-slate-800 {
+    border-color: #e2e8f0 !important;
+}
+
+/* Specific Overrides for Scoring Pad Buttons */
+.light-theme button.bg-slate-800 {
+    background-color: #ffffff !important;
+    border: 2px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    font-weight: 900 !important;
+}
+
+.light-theme button.bg-slate-800:active {
+    background-color: #e2e8f0 !important;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global Mobile Overflow Prevention */
+html,
+body {
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
+#root {
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* Ensure all containers respect viewport width */
+@media (max-width: 768px) {
+    * {
+        max-width: 100vw;
+    }
+
+    /* Prevent text from causing overflow */
+    p,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    span,
+    div {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+}
+
+/* Responsive utilities */
+@media (max-width: 640px) {
+    .mobile-safe-pb {
+        padding-bottom: 120px;
+    }
+}
+
+/* ============================================
+   GLOBAL MOBILE FIXES - Prevent Horizontal Scroll
+   ============================================ */
+
+/* Prevent horizontal overflow on all elements */
+* {
+    max-width: 100%;
+}
+
+/* Ensure body and html don't allow horizontal scroll */
+html,
+body {
+    overflow-x: hidden;
+    width: 100%;
+}
+
+/* Prevent text from causing overflow */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+span,
+div {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Fix containers */
+#root,
+#csp-view-container {
+    overflow-x: hidden;
+    width: 100%;
+}
+
+/* Mobile-specific layout fixes */
+@media (max-width: 768px) {
+
+    /* Ensure all containers respect viewport width */
+    .container,
+    .max-w-7xl,
+    .max-w-6xl,
+    .max-w-5xl,
+    .max-w-4xl {
+        max-width: 100vw !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+
+    /* Fix grid layouts that might overflow */
+    .grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Fix flex layouts */
+    .flex {
+        flex-wrap: wrap;
+    }
+
+    /* Ensure images don't overflow */
+    img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* Fix tables to be scrollable horizontally when needed */
+    table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Reduce padding on mobile for more space */
+    .p-8 {
+        padding: 1rem !important;
+    }
+
+    .px-8 {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    .py-8 {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+    }
+
+    /* Fix button groups that might overflow */
+    .gap-6 {
+        gap: 0.75rem !important;
+    }
+
+    .gap-8 {
+        gap: 1rem !important;
+    }
+
+    /* Make rounded corners smaller on mobile */
+    .rounded-\[2rem\] {
+        border-radius: 1rem !important;
+    }
+
+    /* Fix text sizes that are too large */
+    .text-6xl {
+        font-size: 2.5rem !important;
+    }
+
+    .text-5xl {
+        font-size: 2rem !important;
+    }
+
+    .text-4xl {
+        font-size: 1.75rem !important;
+    }
+
+    .text-3xl {
+        font-size: 1.5rem !important;
+    }
+
+    .text-2xl {
+        font-size: 1.25rem !important;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+
+    /* Even more aggressive spacing reduction */
+    .space-y-6>*+* {
+        margin-top: 1rem !important;
+    }
+
+    .space-y-8>*+* {
+        margin-top: 1.5rem !important;
+    }
+
+    .gap-4 {
+        gap: 0.5rem !important;
+    }
+
+    /* Ensure buttons don't overflow */
+    button {
+        max-width: 100%;
+        word-break: break-word;
+    }
+}

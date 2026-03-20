@@ -1,0 +1,2 @@
+﻿../../packages/shared/components/dashboard/TournamentDashboard.tsx(4,29): error TS2307: Cannot find module '@shared/competition/BracketView.tsx' or its corresponding type declarations.
+../../packages/shared/components/display/PointsTable.tsx(3,10): error TS2305: Module '"@shared/types"' has no exported member 'PointsRow'.

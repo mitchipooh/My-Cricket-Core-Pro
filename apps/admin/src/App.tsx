@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { AdminCenter } from './components/AdminCenter';
-import { OrganizationView } from './components/OrganizationView';
-import { DataProvider, useData } from './contexts/DataProvider';
+import { AdminCenter } from '@shared/components/admin/AdminCenter';
+import { OrganizationView } from '@shared/components/dashboard/OrganizationView';
+import { DataProvider, useData } from '@shared/contexts/DataProvider';
 import './index.css';
 
 const AdminAppContent: React.FC = () => {
-    const { orgs, profile } = useData();
+    const { orgs, profile, standaloneMatches, setOrgs, setStandaloneMatches, issues, setIssues } = useData();
     const [activeOrgId, setActiveOrgId] = useState<string | null>(null);
 
     if (activeOrgId) {
         const org = orgs.find(o => o.id === activeOrgId);
         if (org) {
-            return <OrganizationView org={org} onBack={() => setActiveOrgId(null)} />;
+            return <OrganizationView organization={org} onBack={() => setActiveOrgId(null)} />;
         }
     }
 
@@ -45,7 +45,15 @@ const AdminAppContent: React.FC = () => {
                     </div>
                 </div>
 
-                <AdminCenter />
+                <AdminCenter 
+                    organizations={orgs} 
+                    currentUserProfile={profile} 
+                    userRole={profile?.role || 'Fan'} 
+                    onUpdateOrgs={setOrgs}
+                    standaloneMatches={standaloneMatches}
+                    issues={issues}
+                    onUpdateIssues={setIssues}
+                />
             </div>
         </div>
     );

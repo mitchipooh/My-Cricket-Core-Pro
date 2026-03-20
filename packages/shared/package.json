@@ -1,0 +1,25 @@
+{
+  "name": "@cricket-core/shared",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    "./types": "./types.ts",
+    "./ai/*": "./ai/*.ts",
+    "./constants/*": "./constants/*.ts",
+    "./components/*": "./components/*.tsx",
+    "./services/*": "./services/*.ts",
+    "./hooks/*": "./hooks/*.ts",
+    "./contexts/*": "./contexts/*.tsx"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "lucide-react": "^0.473.0",
+    "recharts": "^2.15.0",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
+  }
+}
