@@ -3,6 +3,11 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "backend"
+  ],
   "homepage": "https://cricketcorepro.com",
   "scripts": {
     "dev": "vite",
