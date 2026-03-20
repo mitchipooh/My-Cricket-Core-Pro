@@ -3,6 +3,8 @@ import { MediaCenter } from '@shared/components/media/MediaCenter';
 import { StatsAnalytics } from '@shared/components/analytics/StatsAnalytics';
 import { GlobalDashboard } from '@shared/components/dashboard/GlobalDashboard';
 import { DataProvider, useData } from '@shared/contexts/DataProvider';
+import { AuthGuard } from '@shared/components/auth/AuthGuard';
+import { useAuth } from '@shared/hooks/useAuth';
 import './index.css';
 
 const MediaAppContent: React.FC = () => {
@@ -36,6 +38,11 @@ const MediaAppContent: React.FC = () => {
                             >
                                 Statistics
                             </button>
+                            <div className="w-px h-6 bg-gray-200"></div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-[10px] font-black">{profile?.name?.charAt(0)}</div>
+                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{profile?.role}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -61,7 +68,9 @@ const MediaAppContent: React.FC = () => {
 
 const App: React.FC = () => (
     <DataProvider>
-        <MediaAppContent />
+        <AuthGuard requireAuth>
+            <MediaAppContent />
+        </AuthGuard>
     </DataProvider>
 );
 

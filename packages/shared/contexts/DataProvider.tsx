@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Organization, MatchFixture, MediaPost, UserProfile, Team, GameIssue, MatchReportSubmission, UmpireMatchReport } from '../types';
 import { useSync } from '../hooks/useSync';
+import { useAuth } from '../hooks/useAuth';
 import { DEMO_ORGS, DEMO_MATCHES, DEMO_POSTS, DEMO_TEAMS } from '../utils/demoData';
 
 interface DataContextType {
@@ -85,6 +86,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [umpireReports, setUmpireReportsState] = useState<UmpireMatchReport[]>(() => {
         try { const saved = localStorage.getItem('cc_umpire_reports'); return saved ? JSON.parse(saved) : []; } catch { return []; }
     });
+
+    // --- AUTH SYNC ---
+    const { user, loading: authLoading, getUserProfile } = useAuth();
+
+    useEffect(() => {
+        if (user && !authLoading) {
+            getUserProfile().then(authProfile => {
+                if (authProfile) {
+                    setProfile(authProfile);
+                }
+            });
+        }
+    }, [user, authLoading]);
 
     // --- PERSISTENCE EFFECT ---
     useEffect(() => {

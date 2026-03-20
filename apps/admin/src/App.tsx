@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { AdminCenter } from '@shared/components/admin/AdminCenter';
 import { OrganizationView } from '@shared/components/dashboard/OrganizationView';
 import { DataProvider, useData } from '@shared/contexts/DataProvider';
+import { AuthGuard } from '@shared/components/auth/AuthGuard';
+import { useAuth } from '@shared/hooks/useAuth';
 import './index.css';
 
 const AdminAppContent: React.FC = () => {
@@ -19,9 +21,11 @@ const AdminAppContent: React.FC = () => {
         <div className="p-6 max-w-4xl mx-auto">
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-3xl font-bold">Project Command Center</h1>
-                <div className="text-right">
-                    <div className="font-semibold">{profile?.name || 'Admin'}</div>
-                    <div className="text-sm text-gray-500">{profile?.role}</div>
+                <div className="flex items-center gap-4">
+                    <div className="text-right">
+                        <div className="font-semibold">{profile?.name || 'Admin'}</div>
+                        <div className="text-sm text-gray-500">{profile?.role}</div>
+                    </div>
                 </div>
             </div>
 
@@ -61,7 +65,9 @@ const AdminAppContent: React.FC = () => {
 
 const App: React.FC = () => (
     <DataProvider>
-        <AdminAppContent />
+        <AuthGuard requireAuth>
+            <AdminAppContent />
+        </AuthGuard>
     </DataProvider>
 );
 

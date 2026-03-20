@@ -6,6 +6,8 @@ import { MatchFixture, MatchState } from '@shared/types';
 import './index.css';
 
 import { ProTools } from '@shared/components/ProTools';
+import { AuthGuard } from '@shared/components/auth/AuthGuard';
+import { useAuth } from '@shared/hooks/useAuth';
 
 const ScorerAppContent: React.FC = () => {
     const { 
@@ -14,8 +16,12 @@ const ScorerAppContent: React.FC = () => {
         orgs, 
         standaloneMatches, 
         setOrgs, 
-        setStandaloneMatches 
+        setStandaloneMatches,
+        updateProfile
     } = useData();
+
+    const { user, signOut } = useAuth();
+    const [showUserMenu, setShowUserMenu] = useState(false);
     
     const [activeMatch, setActiveMatch] = useState<MatchFixture | null>(null);
     const [showSetup, setShowSetup] = useState(false);
@@ -76,19 +82,53 @@ const ScorerAppContent: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
             <div className="bg-white border-b sticky top-0 z-20 shadow-sm">
-                <div className="max-w-xl mx-auto flex">
-                    <button 
-                        onClick={() => setView('matches')}
-                        className={`flex-1 py-4 text-sm font-black uppercase tracking-widest border-b-4 transition-all ${view === 'matches' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}
-                    >
-                        Live Scorer
-                    </button>
-                    <button 
-                        onClick={() => setView('pro')}
-                        className={`flex-1 py-4 text-sm font-black uppercase tracking-widest border-b-4 transition-all ${view === 'pro' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-400'}`}
-                    >
-                        Pro Tools
-                    </button>
+                <div className="max-w-xl mx-auto flex items-center px-4">
+                    <div className="flex-1 flex">
+                        <button 
+                            onClick={() => setView('matches')}
+                            className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest border-b-4 transition-all ${view === 'matches' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}
+                        >
+                            Live Scorer
+                        </button>
+                        <button 
+                            onClick={() => setView('pro')}
+                            className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest border-b-4 transition-all ${view === 'pro' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-400'}`}
+                        >
+                            Pro Tools
+                        </button>
+                    </div>
+
+                    {/* User Menu */}
+                    <div className="relative ml-4">
+                        <button 
+                            onClick={() => setShowUserMenu(!showUserMenu)}
+                            className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 font-black hover:bg-slate-200 transition-all border border-slate-200 overflow-hidden"
+                        >
+                            {profile?.avatarUrl ? (
+                                <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                                profile?.name?.charAt(0) || '?'
+                            )}
+                        </button>
+
+                        {showUserMenu && (
+                            <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 animate-in fade-in zoom-in-95 duration-200 z-50">
+                                <div className="px-4 py-3 border-b border-slate-50 mb-1">
+                                    <div className="text-[10px] font-black text-slate-900 truncate">{profile?.name}</div>
+                                    <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{profile?.role}</div>
+                                </div>
+                                <button 
+                                    onClick={() => {
+                                        signOut();
+                                        setShowUserMenu(false);
+                                    }}
+                                    className="w-full text-left px-4 py-2 rounded-xl text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-colors"
+                                >
+                                    Sign Out
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -165,7 +205,9 @@ const ScorerAppContent: React.FC = () => {
 
 const App: React.FC = () => (
     <DataProvider>
-        <ScorerAppContent />
+        <AuthGuard>
+            <ScorerAppContent />
+        </AuthGuard>
     </DataProvider>
 );
 
