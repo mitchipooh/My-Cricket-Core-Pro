@@ -8,7 +8,7 @@
     "packages/*",
     "backend"
   ],
-  "homepage": "https://cricketcorepro.com",
+  "homepage": "https://cricketcore.pro",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
